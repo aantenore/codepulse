@@ -40,3 +40,8 @@ Thumbs.db
 playground/**/target/
 playground/**/build/
 playground/**/*.class
+
+# Artifacts
+report.html
+temp/
+
