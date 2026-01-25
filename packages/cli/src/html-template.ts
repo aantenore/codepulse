@@ -1,9 +1,9 @@
-import { ReconciledGraph } from '@codepulse/core';
+import { ReconciledGraph, AiAnalysisResult } from '@codepulse/core';
 
-export function generateHtml(graph: ReconciledGraph): string {
-    const safeData = JSON.stringify(graph).replace(/</g, '\\u003c');
+export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult): string {
+    const safeGraph = JSON.stringify(graph).replace(/</g, '\\u003c');
 
-    // Generate Mermaid Diagram Definition
+    // Mermaid Definition (Same as before)
     let mermaidDef = "graph TD;\\n";
     mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:white;\\n";
     mermaidDef += "  classDef zombie fill:#95a5a6,stroke:#7f8c8d,stroke-dasharray: 5 5,color:white;\\n";
@@ -11,7 +11,6 @@ export function generateHtml(graph: ReconciledGraph): string {
     mermaidDef += "  classDef error fill:#e74c3c,stroke:#c0392b,color:white;\\n";
 
     graph.nodes.forEach(node => {
-        // Sanitize IDs
         const nodeId = node.id.replace(/[^a-zA-Z0-9]/g, '_');
         const nodeLabel = \`\${node.name}\\n(\${node.telemetry.executionCount})\`;
         
@@ -22,7 +21,6 @@ export function generateHtml(graph: ReconciledGraph): string {
 
         mermaidDef += \`  \${nodeId}("\${nodeLabel}"):::\${styleClass};\\n\`;
 
-        // Dependencies
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
              const cleanDep = dep.replace(/[^a-zA-Z0-9]/g, '_');
              const depId = \`dep_\${nodeId}_\${idx}\`;
@@ -30,6 +28,20 @@ export function generateHtml(graph: ReconciledGraph): string {
              mermaidDef += \`  \${nodeId} --> \${depId};\\n\`;
         });
     });
+
+    // AI Section HTML
+    let aiHtml = '';
+    if (aiResult) {
+        aiHtml = \`
+        <div class="card ai-summary">
+            <h3>🤖 Architect's Assessment <span class="badge score">\${aiResult.score}/100</span></h3>
+            <p>\${aiResult.summary}</p>
+            <h4>Identified Risks:</h4>
+            <ul>
+                \${aiResult.risks.map(r => \`<li>\${r}</li>\`).join('')}
+            </ul>
+        </div>\`;
+    }
 
     return \`<!DOCTYPE html>
 <html lang="en">
@@ -50,13 +62,17 @@ export function generateHtml(graph: ReconciledGraph): string {
         aside { background: var(--panel); border-left: 1px solid #444; padding: 20px; overflow-y: auto; }
         
         .card { background: #333; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .card h3 { margin-top: 0; color: var(--accent); font-size: 1rem; }
+        .card h3 { margin-top: 0; color: var(--accent); font-size: 1rem; display: flex; justify-content: space-between; }
         .metric { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #444; padding-bottom: 4px; }
         
         .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .badge.verified { background: #2ecc71; color: #000; }
         .badge.zombie { background: #95a5a6; color: #000; }
         .badge.discovered { background: #3498db; color: #fff; }
+        
+        .ai-summary { border: 1px solid var(--accent); background: #263238; }
+        .ai-summary h3 { color: #fff; }
+        .badge.score { background: var(--accent); color: white; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 </head>
@@ -74,25 +90,19 @@ export function generateHtml(graph: ReconciledGraph): string {
             <div class="mermaid">\${mermaidDef}</div>
         </div>
         <aside id="details-panel">
-            <h2>Select a Node</h2>
+            \${aiHtml}
+            <h2>System Details</h2>
             <p style="opacity: 0.7">Click on any block in the diagram to view detailed runtime metrics.</p>
+             <div id="node-list"></div>
         </aside>
     </main>
 
     <script>
-        const graphData = \${safeData};
+        const graphData = \${safeGraph};
         
         mermaid.initialize({ startOnLoad: true, theme: 'dark' });
 
-        // Trivial Interaction Mock (Since Mermaid renders SVG, we'd need D3 or click binding on SVG elements)
-        // For MVP, we just dump the Raw Object in the console for debug
-        console.log("Graph Data Loaded", graphData);
-
-        // A truly interactive version requires binding click events to Mermaid generated nodes
-        // This is complex for a single file static HTML without D3 logic.
-        // Instead, we will populate the side panel with a summary list for now.
-        
-        const aside = document.getElementById('details-panel');
+        const nodeListDiv = document.getElementById('node-list');
         let listHtml = "<h3>All Nodes</h3>";
         
         graphData.nodes.forEach(node => {
@@ -104,7 +114,7 @@ export function generateHtml(graph: ReconciledGraph): string {
             </div>\`;
         });
         
-        aside.innerHTML = listHtml;
+        nodeListDiv.innerHTML = listHtml;
 
     </script>
 </body>
