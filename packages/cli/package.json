@@ -1,0 +1,21 @@
+{
+    "name": "@codepulse/cli",
+    "version": "0.0.1",
+    "bin": {
+        "codepulse": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "transform": "tsc"
+    },
+    "dependencies": {
+        "@codepulse/core": "workspace:*",
+        "@codepulse/plugin-java": "workspace:*",
+        "commander": "^10.0.0",
+        "chalk": "^4.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "@types/node": "^18.0.0"
+    }
+}
