@@ -16,3 +16,7 @@
 ## ⚡ Workflow
 * When asked to "Initialize", always check for existing files first.
 * When writing code, prefer editing existing files over creating duplicates.
+
+## 💾 Version Control (Strict)
+* **Always Commit:** After completing a task or significant step, you MUST run `git add .` and `git commit -m "..."`.
+* **Message Format:** Use conventional commits (feat:, fix:, chore:, docs:).
