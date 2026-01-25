@@ -1,0 +1,18 @@
+# Project: CodePulse (Living Documentation)
+
+## 🧠 Memory & Context Protocol (CRITICAL)
+1.  **AT START:** Before answering any request, you MUST briefly scan `.cursor/CONTEXT_CHECKPOINT.md` (if it exists) to understand the current architectural state and the "Next Step".
+2.  **AT FINISH:** After completing a significant coding task (refactoring, new feature, bugfix), you MUST propose to update `.cursor/CONTEXT_CHECKPOINT.md`.
+    * Update the "Current Status".
+    * Update the "Next Logical Step".
+3.  **Consistency:** Never hallucinate filenames or paths. Rely on the `CONTEXT_CHECKPOINT.md` for the source of truth.
+
+## 🛠 Tech Stack (Enforced)
+* **Manager:** Turborepo + pnpm.
+* **Core:** TypeScript (Strict).
+* **Parsing:** tree-sitter-java.
+* **Tracing:** OpenTelemetry Standard (No custom agents).
+
+## ⚡ Workflow
+* When asked to "Initialize", always check for existing files first.
+* When writing code, prefer editing existing files over creating duplicates.

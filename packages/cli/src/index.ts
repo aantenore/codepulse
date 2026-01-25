@@ -3,6 +3,8 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { JavaInstrumenter } from '@codepulse/plugin-java';
+import { generate } from './commands/generate';
+import { run } from './commands/run'; // Restore if needed, or inline
 
 const program = new Command();
 
@@ -29,13 +31,22 @@ program
             console.error(`[CodePulse] Instrumenting: ${file}...`);
             const modified = await instrumenter.inject(content, absolutePath);
 
-            // Output to stdout as per instructions
             console.log(modified);
 
         } catch (error) {
             console.error('[CodePulse] CLI Error:', error);
             process.exit(1);
         }
+    });
+
+program
+    .command('generate')
+    .description('Generate Living Documentation from Code and Traces')
+    .requiredOption('--source <path>', 'Path to source code')
+    .requiredOption('--traces <path>', 'Path to trace-dump.json')
+    .option('--output <path>', 'Output markdown file', 'LIVING_DOC.md')
+    .action((options) => {
+        generate(options);
     });
 
 program.parse();
