@@ -6,11 +6,11 @@
         "build": "tsc"
     },
     "dependencies": {
-        "@codepulse/core": "workspace:*",
+        "@codepulse/core": "file:../core",
         "@google/generative-ai": "^0.1.3"
     },
     "devDependencies": {
-        "typescript": "^5.0.0",
-        "@types/node": "^18.0.0"
+        "@types/node": "^18.0.0",
+        "typescript": "^5.0.0"
     }
 }

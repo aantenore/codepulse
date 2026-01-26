@@ -40,3 +40,9 @@ To resume development or run a demo:
 
 ## ⏭ NEXT IMMEDIATE STEP
 **Explore CI/CD integration (GitHub Actions) to run CodePulse on every PR.**
+
+## ✅ Verification Log
+*   **Env Config:** Verified `AI_MODEL_GOOGLE` / `OPENAI` are read correctly.
+*   **Build:** Core and Adapters compiled successfully.
+*   **E2E:** Manual end-to-end flow verified via script (using Google Gemini Flash).
+*   **Roadmap:** Future V2: Implement 'AI Routing' to use different models for different analysis stages.
