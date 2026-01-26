@@ -1,0 +1,16 @@
+{
+    "name": "@codepulse/adapter-google",
+    "version": "0.0.1",
+    "main": "./dist/index.js",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@codepulse/core": "workspace:*",
+        "@google/generative-ai": "^0.1.3"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "@types/node": "^18.0.0"
+    }
+}

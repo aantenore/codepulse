@@ -1,8 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
 import { AdvancedFlowReconciler, TraceSpan, CodeGraph, CodeNode, IAiProvider, MockAiProvider, AiAnalysisResult } from '@codepulse/core';
 import { OpenAiProvider } from '@codepulse/adapter-openai';
+import { GoogleAiProvider } from '@codepulse/adapter-google';
 import { generateHtml } from '../html-template';
+import { TechDocGenerator } from '../generators/markdown-flow';
 
 // Mock Parser for MVP (Reuse)
 function mockParse(sourcePath: string): CodeGraph {
@@ -15,6 +18,9 @@ function mockParse(sourcePath: string): CodeGraph {
 }
 
 export async function generate(options: { source: string; traces: string; output: string; ai?: string }) {
+    // Initialize dotenv to load environment variables
+    dotenv.config();
+
     console.log(`[CodePulse] Generating Dashboard...`);
 
     // 1. Static & Dynamic Analysis
@@ -44,6 +50,14 @@ export async function generate(options: { source: string; traces: string; output
             console.log("[AI] Using OpenAI Provider...");
             provider = new OpenAiProvider(key);
         }
+    } else if (options.ai === 'google') {
+        const key = process.env.GOOGLE_API_KEY;
+        if (!key) {
+            console.warn("[Warning] GOOGLE_API_KEY missing. Falling back to Mock Provider. Please check your .env file.");
+        } else {
+            console.log("[AI] Using Google Gemini Provider...");
+            provider = new GoogleAiProvider();
+        }
     }
 
     try {
@@ -57,9 +71,16 @@ export async function generate(options: { source: string; traces: string; output
     let outPath = options.output;
     if (outPath.endsWith('.md')) outPath = 'report.html';
 
+    // Generate HTML Dashboard
     const html = generateHtml(result, aiResult);
     fs.writeFileSync(outPath, html);
 
+    // Generate Markdown Tech Doc
+    const mdContent = TechDocGenerator.generate(result);
+    const mdPath = path.join(path.dirname(outPath), 'FLOW_ARCHITECTURE.md');
+    fs.writeFileSync(mdPath, mdContent);
+
     console.log(`[Success] Dashboard generated at: ${outPath}`);
+    console.log(`[Success] Tech Docs generated at: ${mdPath}`);
     console.log(`Open it directly in your browser.`);
 }
