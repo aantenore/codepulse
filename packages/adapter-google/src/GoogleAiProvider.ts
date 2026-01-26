@@ -12,8 +12,11 @@ export class GoogleAiProvider implements IAiProvider {
         if (!apiKey) {
             throw new Error('GOOGLE_API_KEY environment variable is not set. Please add it to your .env file.');
         }
+        const modelName = process.env.AI_MODEL_GOOGLE || 'gemini-1.5-flash';
+        console.log(`[AI] Using Google Gemini model: ${modelName}`);
+
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        this.model = this.genAI.getGenerativeModel({ model: modelName });
     }
 
     async analyze(graph: ReconciledGraph): Promise<AiAnalysisResult> {

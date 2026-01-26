@@ -6,9 +6,10 @@ export class OpenAiProvider implements IAiProvider {
     private client: OpenAI;
     private model: string;
 
-    constructor(apiKey: string, model: string = 'gpt-4o-mini') {
+    constructor(apiKey: string) {
         this.client = new OpenAI({ apiKey });
-        this.model = model;
+        this.model = process.env.AI_MODEL_OPENAI || 'gpt-4o';
+        console.log(`[AI] Using OpenAI model: ${this.model}`);
     }
 
     async analyze(graph: ReconciledGraph): Promise<AiAnalysisResult> {
