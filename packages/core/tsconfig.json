@@ -10,7 +10,8 @@
         "lib": [
             "ES2021",
             "DOM"
-        ]
+        ],
+        "composite": true
     },
     "include": [
         "src"
