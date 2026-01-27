@@ -37,7 +37,7 @@ export class OpenAiProvider implements IAiProvider {
 
         // Minimize graph for token limit (strip heavy metadata if needed)
         // For now, send full graph as it's small in playground.
-        const userPrompt = JSON.stringify(graph.nodes.map(n => ({
+        const userPrompt = JSON.stringify(graph.nodes.map((n: any) => ({
             name: n.name,
             status: n.status,
             deps: n.telemetry.discoveredDependencies,
