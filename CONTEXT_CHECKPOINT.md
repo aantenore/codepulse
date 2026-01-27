@@ -1,13 +1,13 @@
 # Context Checkpoint
 
 ## Status
-Stable - Noise Suppressed
+Fixed Generator - Ports Standardized
 
 ## Changelog
 - **Fixed HTML rendering**: Injected Mermaid.js CDN and initialization code into `html-template.ts`.
-- **Improved Demo Reliability**: Increased `run_demo.ps1` wait time to 90s and refined health checks to ensure downstream service readiness.
-- **OTel Silence**: Disabled OTLP Logs/Metrics export to fix 404 errors across all services.
-- **Generic Purging**: Removed all hardcoded demo service names from the core and CLI packages.
+- **Improved Demo Reliability**: Increased `run_demo.ps1` wait time to 90s and refined health checks.
+- **OTel Silence**: Disabled OTLP Logs/Metrics export to fix 404 errors.
+- **Infrastructure Cleanup**: Removed `setup_microcommerce.ps1`; playground is now managed statically in the repo with port 8080 standardized for all services.
 
 ## Next Steps
-- Verify clean logs and final trace capture.
+- Verify stable inter-service communication and final trace capture.
