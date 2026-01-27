@@ -81,15 +81,32 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
             overflow: hidden; 
         }
         /* ... header styles ... */
-        main { display: grid; grid-template-columns: 1fr 400px; height: 100%; overflow: hidden; } /* Ensure main doesn't scroll, children do */
-        /* ... graph container ... */
+        main { display: grid; grid-template-columns: 1fr 400px; height: 100%; } 
+        #graph-container { 
+            overflow: hidden; /* Only graph should clip */
+            padding: 0; 
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative;
+            height: 100%;
+        }
+        .mermaid { 
+            width: 100%; 
+            height: 100%; /* Fill container */
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
         aside { 
             background: var(--panel); 
             border-left: 1px solid rgba(255,255,255,0.1); 
             padding: 30px; 
-            height: 100%; /* Force full height */
+            height: 100%;
             overflow-y: auto; 
             box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+            position: relative; /* Ensure stacking context */
         }
         
         .card { 
