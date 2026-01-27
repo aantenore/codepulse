@@ -90,7 +90,5 @@ for ($i = 1; $i -le 10; $i++) { # Increased to 10 batches for more data
 # B. Zombie Path (NEVER CALLED)
 # Write-Host "  -> (Skipping) Auth.resetPassword to test Zombie Detection"
 
-Write-Host "`n[4/4] Demo Complete. [SUCCESS]"
-Write-Host "Generating tech docs now?"
-Read-Host "Press Enter to Stop Services..."
-docker-compose down
+Write-Host "`n[4/4] Demo Complete. Traces captured in temp/traces/."
+# docker-compose down --remove-orphans
