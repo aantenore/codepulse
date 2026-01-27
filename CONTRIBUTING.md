@@ -43,10 +43,41 @@ CodePulse is a TypeScript monorepo managed with **pnpm** and **Turborepo**.
 
 ## 🔍 Adding a New Language Plugin
 
-1. Create a new package `packages/plugin-yourlanguage`.
-2. Implement the `ICodeParser` interface from `@codepulse/core`.
-3. Use Tree-Sitter or a custom parser to extract methods and dependencies.
-4. Register the plugin in the `ProjectParser` initialization (usually in `generate.ts`).
+We use a **Plugin Architecture** based on **Tree-sitter**. This allows us to support any language with speed and precision.
+
+### Step 1: Create the Plugin Package
+Duplicate `packages/plugin-java` to `packages/plugin-[lang]`.
+```bash
+cp -r packages/plugin-java packages/plugin-python
+```
+
+### Step 2: Define Tree-sitter Queries
+Create a `.scm` file in `packages/plugin-[lang]/queries/`. We use S-Expressions to identify code structures.
+*Example (python.scm):*
+```scheme
+(function_definition
+  name: (identifier) @method.name
+  body: (block) @method.body)
+```
+
+### Step 3: Implement the Parser Interface
+Implement `ICodeParser` in your `src/[Lang]Parser.ts`.
+```typescript
+import { ICodeParser, CodeGraph } from '@codepulse/core';
+
+export class PythonParser implements ICodeParser {
+    async parse(files: string[]): Promise<CodeGraph> {
+        // Use tree-sitter-python to execute the query
+        // Map results to CodeNodes
+    }
+}
+```
+
+### Step 4: Register in CLI
+Add your new parser to `packages/cli/src/commands/generate.ts`:
+```typescript
+projectParser.registerParser('.py', new PythonParser());
+```
 
 ## 📜 Development Guidelines
 

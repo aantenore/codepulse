@@ -8,8 +8,9 @@
         "lint": "eslint src/**/*.ts"
     },
     "dependencies": {
+        "@ai-sdk/openai": "^3.0.19",
         "@codepulse/core": "file:../core",
-        "openai": "^4.0.0"
+        "ai": "^6.0.50"
     },
     "devDependencies": {
         "typescript": "^5.0.0"

@@ -12,7 +12,7 @@ export class ProviderManager {
                     return new MockAiProvider();
                 }
                 console.log("[AI] Using OpenAI Provider...");
-                return new OpenAiProvider(openAiKey);
+                return new OpenAiProvider();
 
             case 'google':
             case 'gemini':

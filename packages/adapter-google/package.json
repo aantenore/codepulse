@@ -6,8 +6,9 @@
         "build": "tsc"
     },
     "dependencies": {
+        "@ai-sdk/google": "^3.0.13",
         "@codepulse/core": "file:../core",
-        "@google/generative-ai": "^0.24.1"
+        "ai": "^6.0.50"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",
