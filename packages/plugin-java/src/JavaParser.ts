@@ -2,13 +2,25 @@ import { ICodeParser, CodeGraph, CodeNode, CodeEdge } from '@codepulse/core';
 import Parser from 'tree-sitter';
 // @ts-ignore
 import Java from 'tree-sitter-java';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class JavaParser implements ICodeParser {
     private parser: Parser;
+    private query: Parser.Query;
 
     constructor() {
         this.parser = new Parser();
         this.parser.setLanguage(Java);
+
+        const queryPath = path.join(__dirname, '../queries/java.scm');
+        // Fallback for dev/prod paths
+        const scmPath = fs.existsSync(queryPath)
+            ? queryPath
+            : path.join(__dirname, '../../queries/java.scm');
+
+        const scmContent = fs.readFileSync(scmPath, 'utf8');
+        this.query = new Parser.Query(Java, scmContent);
     }
 
     async parse(fileContent: string, filePath: string): Promise<CodeGraph> {
@@ -17,13 +29,14 @@ export class JavaParser implements ICodeParser {
         const edges: CodeEdge[] = [];
         const rootNode = tree.rootNode;
 
-        const methodQuery = new Parser.Query(Java, `
-            (method_declaration) @method
-        `);
+        // Execute unified query
+        const matches = this.query.matches(rootNode);
+
+        // Separate matches by capture name
+        const classMatches = matches.filter(m => m.captures.some(c => c.name === 'class'));
+        const methodMatches = matches.filter(m => m.captures.some(c => c.name === 'method'));
 
         // 1. Get Class Name and Class-level Route
-        const classQuery = new Parser.Query(Java, `(class_declaration) @class`);
-        const classMatches = classQuery.matches(rootNode);
         let classIdentifier = "Unknown";
         let classBasePath = "";
 
