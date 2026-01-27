@@ -32,44 +32,59 @@ docker-compose down --remove-orphans
 docker-compose up -d --build
 if ($LASTEXITCODE -ne 0) { Write-Error "Docker Start Failed"; exit 1 }
 
-Write-Host "`n[2.1/4] Waiting 60s for services to start..."
-Start-Sleep -Seconds 60
+Write-Host "`n[2.1/4] Waiting 90s for services to start (Java is slow)..."
+Start-Sleep -Seconds 90
 
-Write-Host "Verifying service health..."
-$maxRetries = 10
+Write-Host "Verifying mesh health (All services)..."
+$endpoints = @(
+    "http://localhost:8080/health", # gateway
+    "http://localhost:8081/health", # auth
+    "http://localhost:8082/health", # product
+    "http://localhost:8083/health", # order
+    "http://localhost:8084/health", # payment
+    "http://localhost:8085/health"  # shipping
+)
+
+$maxRetries = 15
 $retryCount = 0
-$healthy = $false
+$allHealthy = $false
 
-while (-not $healthy -and $retryCount -lt $maxRetries) {
-    try {
-        $check = Invoke-WebRequest -Uri "http://localhost:8080/api/order" -Method Post -Body '{}' -ContentType "application/json" -ErrorAction SilentlyContinue
-        if ($check.StatusCode -eq 200 -or $check.StatusCode -eq 500) {
-            $healthy = $true
-            Write-Host "  -> Gateway is UP!" -ForegroundColor Green
+while (-not $allHealthy -and $retryCount -lt $maxRetries) {
+    $allHealthy = $true
+    foreach ($url in $endpoints) {
+        try {
+            $resp = Invoke-WebRequest -Uri $url -Method Get -UseBasicParsing -ErrorAction SilentlyContinue
+            if ($resp.StatusCode -ne 200) { $allHealthy = $false }
+        } catch {
+            $allHealthy = $false
         }
-    } catch {
+    }
+    
+    if (-not $allHealthy) {
         $retryCount++
-        Write-Host "  -> Waiting for Gateway... ($retryCount/$maxRetries)"
-        Start-Sleep -Seconds 5
+        Write-Host "  -> Mesh not ready yet ($retryCount/$maxRetries)..."
+        Start-Sleep -Seconds 10
     }
 }
 
-if (-not $healthy) {
-    Write-Warning "Gateway not fully ready, but proceeding with traffic burst..."
+if ($allHealthy) {
+    Write-Host "  -> Full Mesh is UP and HEALTHY!" -ForegroundColor Green
+} else {
+    Write-Warning "Mesh not fully ready, but proceeding with traffic burst..."
 }
 
 # 3. Traffic Phase (Complex User Journey)
 Write-Host "`n[3/4] Simulating Traffic Flow (Burst)..."
 
-for ($i = 1; $i -le 5; $i++) {
-    Write-Host "  -> Request Batch $i/5..."
+for ($i = 1; $i -le 10; $i++) { # Increased to 10 batches for more data
+    Write-Host "  -> Request Batch $i/10..."
     try {
         $response = Invoke-RestMethod -Uri "http://localhost:8080/api/order" -Method Post -Body '{"item":"Laptop"}' -ContentType "application/json"
         Write-Host "     Response: $response"
     } catch {
-        Write-Host "     Warning: Batch $i failed (Chaos active)" -ForegroundColor Yellow
+        Write-Host "     Warning: Batch $i failed (Chaos active or timeout)" -ForegroundColor Yellow
     }
-    Start-Sleep -Seconds 1
+    Start-Sleep -Seconds 2
 }
 
 # B. Zombie Path (NEVER CALLED)

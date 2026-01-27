@@ -1,8 +1,1 @@
-package com.microcommerce.product;
-import org.springframework.web.bind.annotation.*;
-
-@RestController
-public class ProductController {
-    @GetMapping("/products")
-    public String getProducts() { return "Product List"; }
-}
+package com.microcommerce.product; import org.springframework.web.bind.annotation.*; @RestController public class ProductController { @GetMapping("/health") public String health() { return "OK"; } @GetMapping("/products") public String getProducts() { return "Product List"; } }
