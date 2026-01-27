@@ -89,7 +89,7 @@ Please provide a JSON response with the following structure (do not use markdown
             return response.text();
         } catch (e) {
             console.error("Google Chat Failed", e);
-            return "Error generating content.";
+            throw e;
         }
     }
 }
