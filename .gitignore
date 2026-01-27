@@ -40,6 +40,7 @@ Thumbs.db
 # Playground Artifacts
 playground/**/*.class
 playground/**/*.jar
+playground/**/target/
 
 # Generated Artifacts
 report.html
