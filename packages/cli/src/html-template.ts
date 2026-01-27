@@ -25,7 +25,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const depId = `dep_${nodeId}_${idx}`;
             // Clean up label
-            const label = dep.replace('API: ', '').replace('DB: ', '');
+            const label = dep.replace('API: ', '').replace('DB: ', '').replace('external_api_call:', '');
 
             if (label.includes('Caller:')) {
                 // Reverse Edge: External -> Node
@@ -92,32 +92,38 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
             overflow: hidden; 
         }
         /* ... header styles ... */
-        main { display: grid; grid-template-columns: 1fr 400px; height: 100%; } 
+        /* ... header styles ... */
+        main { display: block; height: 100%; position: relative; } 
         #graph-container { 
-            overflow: hidden; /* Only graph should clip */
+            height: 100%;
+            margin-right: 400px; /* Reserve space for fixed sidebar */
+            overflow: hidden; 
             padding: 0; 
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             position: relative;
-            height: 100%;
         }
         .mermaid { 
             width: 100%; 
-            height: 100%; /* Fill container */
+            height: 100%; 
             display: flex; 
             justify-content: center; 
             align-items: center;
         }
         aside { 
+            position: fixed;
+            right: 0;
+            top: 70px; /* Header height */
+            bottom: 0;
+            width: 400px;
             background: var(--panel); 
             border-left: 1px solid rgba(255,255,255,0.1); 
             padding: 30px; 
-            height: 100%;
             overflow-y: auto; 
             box-shadow: -10px 0 30px rgba(0,0,0,0.2);
-            position: relative; /* Ensure stacking context */
+            z-index: 10;
         }
         
         .card { 
@@ -159,7 +165,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 </head>
 <body>
     <header>
-        <h1>⚡ CodePulse Dashboard</h1>
+        <h1>⚡ CodePulse Dashboard v1.4 (Fixed Layout)</h1>
         <div class="stats">
             <span class="stat-item">Verified: <b>${graph.summary.verified}</b></span>
             <span class="stat-item">Zombies: <b>${graph.summary.zombies}</b></span>
