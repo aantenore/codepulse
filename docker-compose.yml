@@ -136,6 +136,7 @@ services:
     container_name: legacy-warehouse
     volumes:
       - ./playground/legacy-data:/usr/share/nginx/html
+      - ./playground/legacy-conf/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "9090:80"
     networks:

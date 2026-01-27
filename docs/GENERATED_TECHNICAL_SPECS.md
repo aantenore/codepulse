@@ -42,6 +42,12 @@ The system follows a **Microservices Mesh** architecture.
 | **Auth** | `/reset-password` | None | **Zombie Endpoint:** Identified in source code but not referenced by Gateway or other services. |
 | **Legacy Warehouse** | `/inventory.json` | None | **Black Box:** Nginx container serving static JSON. No OTel instrumentation. Discovered via Inferred Spans. |
 
+## Resilience Pattern: Application-Layer Context Propagation
+To handle infrastructure that strips headers (simulated by Nginx `proxy_pass_request_headers off`), we implement a fallback mechanism:
+1.  **Product Service:** Injects the W3C Trace Context into the URL query parameter `app_trace_ref`.
+2.  **Legacy Warehouse:** Forwards the query parameters while stripping headers.
+3.  **Shipping Service:** Extracts `app_trace_ref` and manually links the trace via `app.restored_trace_parent` attribute.
+
 ## 4. Sequence Diagram
 
 ```mermaid
