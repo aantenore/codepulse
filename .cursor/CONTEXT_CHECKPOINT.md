@@ -1,14 +1,19 @@
 # Context Checkpoint
-**Version:** 1.3.0
-**Status:** Feature Complete (Resilience Pattern Implemented)
+**Version:** 1.4.0
+**Status:** Stable Release (UI & Resilience Verified)
 
 ## Recent Changes
-- **Infrastructure:** Added `legacy-warehouse` (Nginx) with header stripping configured.
-- **Resilience:** Implemented App-Layer Context Propagation.
-    - `ProductService`: Injects Trace ID into `app_trace_ref` query param.
-    - `ShippingService`: Extracts `app_trace_ref` and links trace.
-- **Documentation:** Updated technical specs and task list.
+- **UI Polish:**
+    - Sidebar uses `position: fixed` for robust scrolling.
+    - Graph auto-centers on load (500ms delay).
+    - Report title updated to `v1.4`.
+- **Resilience Pattern:**
+    - `Legacy -> Shipping` edge visualized via injected "Caller" event.
+    - Verified trace recovery via logs (`Restored Connection: true`).
+- **Verification:**
+    - Full clean run (`run_demo.ps1`) passed.
+    - Artifacts committed (`chore: final cleanup`).
 
 ## Next Steps
-- Run `run_demo.ps1` to verify trace recovery.
-- Inspect logs for "Restored Connection to Trace".
+- Project Complete. Ready for handoff.
+
