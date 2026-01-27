@@ -24,8 +24,19 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const depId = `dep_${nodeId}_${idx}`;
-            mermaidDef += `  ${depId}["${dep}"]:::discovered;\n`;
-            mermaidDef += `  ${nodeId} --> ${depId};\n`;
+            // Clean up label
+            const label = dep.replace('API: ', '').replace('DB: ', '');
+
+            if (label.includes('Caller:')) {
+                // Reverse Edge: External -> Node
+                const cleanLabel = label.replace('Caller: ', '');
+                mermaidDef += `  ${depId}["${cleanLabel}"]:::discovered;\n`;
+                mermaidDef += `  ${depId} --> ${nodeId};\n`;
+            } else {
+                // Normal Edge: Node -> Dependency
+                mermaidDef += `  ${depId}["${label}"]:::discovered;\n`;
+                mermaidDef += `  ${nodeId} --> ${depId};\n`;
+            }
         });
     });
 
@@ -215,7 +226,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
                     panZoom.resize();
                     panZoom.fit();
                     panZoom.center();
-                }, 100);
+                }, 500);
 
             } catch (e) {
                 console.error("Mermaid Render Error:", e);
