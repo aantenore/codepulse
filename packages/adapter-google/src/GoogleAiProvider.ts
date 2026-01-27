@@ -4,22 +4,36 @@ import { ReconciledGraph } from '@codepulse/core/src/reconciler/types';
 
 export class GoogleAiProvider implements IAiProvider {
     name = 'google';
-    private genAI: GoogleGenerativeAI;
-    private model: any;
+    private genAI?: GoogleGenerativeAI;
+    private model?: any;
 
     constructor() {
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) {
-            throw new Error('GOOGLE_API_KEY environment variable is not set. Please add it to your .env file.');
+            // We shouldn't throw error in constructor if not used, but let's keep it safe or just warn.
+            // The original code threw error.
+            // Let's check environment variable existence, but maybe allow instantiation?
+            // Actually, if apiKey is missing, prompt user? But this is headless mostly.
+            console.warn('GOOGLE_API_KEY environment variable is not set. Google AI features will fail.');
         }
         const modelName = process.env.AI_MODEL_GOOGLE || 'gemini-1.5-flash';
         console.log(`[AI] Using Google Gemini model: ${modelName}`);
 
-        this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: modelName });
+        if (apiKey) {
+            this.genAI = new GoogleGenerativeAI(apiKey);
+            this.model = this.genAI.getGenerativeModel({ model: modelName });
+        }
     }
 
     async analyze(graph: ReconciledGraph): Promise<AiAnalysisResult> {
+        if (!this.model) {
+            return {
+                summary: "Google AI Provider not configured (missing API Key).",
+                risks: ["Configuration Error: Missing GOOGLE_API_KEY"],
+                score: 0
+            };
+        }
+
         const prompt = `
 You are a Senior Software Architect reviewing a project's architecture based on runtime analysis.
 Please analyze the following system metrics and graph data:
@@ -64,6 +78,18 @@ Please provide a JSON response with the following structure (do not use markdown
                 risks: [`Error: ${error instanceof Error ? error.message : String(error)}`],
                 score: 0
             };
+        }
+    }
+
+    async chat(prompt: string): Promise<string> {
+        if (!this.model) return "Google AI Provider not configured.";
+        try {
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (e) {
+            console.error("Google Chat Failed", e);
+            return "Error generating content.";
         }
     }
 }

@@ -51,7 +51,7 @@ export class OpenAiProvider implements IAiProvider {
                 { role: 'user', content: userPrompt }
             ],
             response_format: { type: "json_object" }
-        });
+        } as any);
 
         const content = response.choices[0].message.content || '{}';
         try {
@@ -67,6 +67,18 @@ export class OpenAiProvider implements IAiProvider {
                 risks: ["Analysis Parse Error"],
                 score: 0
             };
+        }
+    }
+    async chat(prompt: string): Promise<string> {
+        try {
+            const response = await this.client.chat.completions.create({
+                model: this.model,
+                messages: [{ role: 'user', content: prompt }],
+            });
+            return response.choices[0].message.content || '';
+        } catch (e) {
+            console.error("OpenAI Chat Failed", e);
+            return "Error generating content.";
         }
     }
 }

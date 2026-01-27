@@ -1,38 +1,47 @@
 #!/bin/bash
-mkdir -p playground/repo-order-service/src/main/java/com/prada/order
-mkdir -p playground/repo-inventory-service/src/main/java/com/prada/inventory
+mkdir -p playground/repo-order-service/src/main/java/com/codepulse/order
+mkdir -p playground/repo-inventory-service/src/main/java/com/codepulse/inventory
 
 # Order Service (Caller)
-cat <<EOF > playground/repo-order-service/src/main/java/com/prada/order/OrderController.java
-package com.prada.order;
+cat <<EOF > playground/repo-order-service/src/main/java/com/codepulse/order/OrderController.java
+package com.codepulse.order;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
 @RestController
 public class OrderController {
-
-    private OrderRepository repo;
+    
+    @Autowired
     private RestTemplate restTemplate;
 
-    @PostMapping("/create")
-    public Order create(@RequestBody Order o) {
-        System.out.println("Checking Inventory...");
-        // External Call
-        String status = restTemplate.postForObject("http://inventory-service/check", o, String.class);
-        
-        if ("OK".equals(status)) {
-            // DB Call
-            return repo.save(o);
+    @PostMapping("/order")
+    public String placeOrder() {
+        // Call Payment Service
+        try {
+            String paymentResponse = restTemplate.postForObject("http://localhost:8081/payment", null, String.class);
+            
+            // Call Inventory Service
+            String inventoryResponse = restTemplate.getForObject("http://localhost:8082/inventory", String.class);
+            
+            return "Order Placed! " + paymentResponse + " " + inventoryResponse;
+        } catch (Exception e) {
+             return "Order Failed: " + e.getMessage();
         }
-        throw new RuntimeException("Out of Stock");
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
 EOF
 
 # Inventory Service (Callee)
-cat <<EOF > playground/repo-inventory-service/src/main/java/com/prada/inventory/InventoryController.java
-package com.prada.inventory;
+cat <<EOF > playground/repo-inventory-service/src/main/java/com/codepulse/inventory/InventoryController.java
+package com.codepulse.inventory;
 
 import org.springframework.web.bind.annotation.*;
 

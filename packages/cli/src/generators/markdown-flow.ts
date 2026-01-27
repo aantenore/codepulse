@@ -1,14 +1,49 @@
 import { ReconciledGraph, ReconciledNode } from '@codepulse/core/src/reconciler/types';
+import { IAiProvider } from '@codepulse/core/src/ai/IAiProvider';
 
 export class TechDocGenerator {
-    static generate(graph: ReconciledGraph, projectName: string = 'CodePulse Project'): string {
+    static async generate(graph: ReconciledGraph, provider: IAiProvider, projectName: string = 'CodePulse Project'): Promise<string> {
         const date = new Date().toISOString().split('T')[0];
 
         let md = `# Flow Architecture: ${projectName}\n`;
         md += `**Date:** ${date}\n\n`;
+        md += `> **Generative Docs:** This chapter was written by ${provider.name} AI.\n\n`;
 
-        // Section 1: Executive Summary
-        md += `## 1. Executive Summary\n\n`;
+        // Section 1: AI Analysis - System Resilience
+        md += `## 1. System Resilience & Flow Analysis\n\n`;
+
+        try {
+            const prompt = `
+            You are a Technical Writer and Software Architect.
+            Analyze this CodePulse Graph (JSON).
+            Write a Markdown chapter titled 'System Resilience & Flow Analysis'.
+            
+            Context:
+            - Total Nodes: ${graph.summary.totalNodes}
+            - Verified Coverage: ${graph.summary.verified} lines/methods
+            - Zombie Code: ${graph.summary.zombies} nodes
+            
+            Requirements:
+            1. **Narrative Flow:** Describe the user journey (e.g., 'User places order...'). Identify likely entry points (Controllers).
+            2. **Chaos Analysis:** Identify points of failure. If you see 'payment' or 'inventory' in the graph, hypothesize about latency or failure impact.
+            3. **Architecture Recommendations:** Suggest 1-2 improvements.
+            
+            Graph Data:
+            ${JSON.stringify(graph.nodes.slice(0, 50).map(n => ({ id: n.id, connections: n.telemetry.discoveredDependencies })), null, 2)}
+            
+            Output strictly the Markdown content for this chapter. Do not allow markdown code blocks of the output itself.
+            `;
+
+            // Call the AI provider's chat method
+            const analysis = await provider.chat(prompt);
+            md += analysis + "\n\n";
+
+        } catch (e) {
+            md += `_AI Generation Failed: ${e}_\n\n`;
+        }
+
+        // Section 2: Executive Summary
+        md += `## 2. Executive Summary\n\n`;
         const total = graph.summary.totalNodes;
         const verifiedPct = total > 0 ? ((graph.summary.verified / total) * 100).toFixed(1) : '0';
         const zombiePct = total > 0 ? ((graph.summary.zombies / total) * 100).toFixed(1) : '0';
@@ -18,8 +53,8 @@ export class TechDocGenerator {
         md += `- **Zombie Code (Unused):** ${zombiePct}%\n`;
         md += `- **Discovered Dependencies:** ${graph.summary.discovered}\n\n`;
 
-        // Section 2: Data Flow Matrix
-        md += `## 2. Data Flow Matrix\n\n`;
+        // Section 3: Data Flow Matrix
+        md += `## 3. Data Flow Matrix\n\n`;
         md += `| Source Class | Method | Target Dependency |\n`;
         md += `|---|---|---|\n`;
 
@@ -32,16 +67,6 @@ export class TechDocGenerator {
                 const className = parts.length > 1 ? parts.slice(0, -1).join('.') : 'Global';
                 const methodName = parts.length > 1 ? parts[parts.length - 1] : node.id;
 
-                // If the node has outgoing edges, those are dependencies. 
-                // However, CodeNode definition usually has 'outgoing' array of IDs.
-                // ReconciledNode extends CodeNode.
-                // Let's assume 'outgoing' is available on CodeNode.
-                // If not, we might need to check how dependencies are stored.
-                // Checking types.ts previously, ReconciledNode extends CodeNode.
-                // I will assume CodeNode has 'outgoing' or 'dependencies'.
-                // Actually the prompt said "Source Class -> Method -> Target Dependency".
-                // Telemetry has 'discoveredDependencies'.
-
                 const deps = node.telemetry.discoveredDependencies && node.telemetry.discoveredDependencies.length > 0
                     ? node.telemetry.discoveredDependencies.join(', ')
                     : '-';
@@ -51,11 +76,11 @@ export class TechDocGenerator {
         }
         md += `\n`;
 
-        // Section 3: Anomalies
-        md += `## 3. Anomalies\n\n`;
+        // Section 4: Anomalies
+        md += `## 4. Anomalies\n\n`;
 
         const zombies = graph.nodes.filter(n => n.status === 'potentially_dead');
-        md += `### 3.1 Zombie Code (${zombies.length})\n`;
+        md += `### 4.1 Zombie Code (${zombies.length})\n`;
         if (zombies.length > 0) {
             md += `The following methods appear to be defined but never executed:\n`;
             zombies.forEach(z => {
@@ -67,7 +92,7 @@ export class TechDocGenerator {
         md += `\n`;
 
         const hidden = graph.nodes.filter(n => n.status === 'discovered');
-        md += `### 3.2 Hidden Dependencies (${hidden.length})\n`;
+        md += `### 4.2 Hidden Dependencies (${hidden.length})\n`;
         if (hidden.length > 0) {
             md += `The following nodes were discovered at runtime but not in static analysis:\n`;
             hidden.forEach(h => {

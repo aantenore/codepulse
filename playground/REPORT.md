@@ -13,7 +13,7 @@
 
 ### Instrumented Output
 ```java
-package com.prada.order;
+package com.codepulse.order;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -69,7 +69,7 @@ public class OrderController {
 
 ### Instrumented Output
 ```java
-package com.prada.inventory;
+package com.codepulse.inventory;
 
 import org.springframework.web.bind.annotation.*;
 

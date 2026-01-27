@@ -1,12 +1,12 @@
-package com.prada.inventory;
+package com.codepulse.inventory;
 
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class InventoryController {
 
-    @PostMapping("/check")
-    public String check(@RequestBody Object item) {
+    @GetMapping("/inventory")
+    public String check() {
         // DB Call
         return "OK";
     }

@@ -1,9 +1,10 @@
-import { ReconciledGraph, AiAnalysisResult } from '@codepulse/core';
+import { ReconciledGraph } from '@codepulse/core';
+import { AiAnalysisResult } from '@codepulse/core/src/ai/IAiProvider';
 
 export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult): string {
     const safeGraph = JSON.stringify(graph).replace(/</g, '\\u003c');
 
-    // Mermaid Definition (Same as before)
+    // Mermaid Definition
     let mermaidDef = "graph TD;\\n";
     mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:white;\\n";
     mermaidDef += "  classDef zombie fill:#95a5a6,stroke:#7f8c8d,stroke-dasharray: 5 5,color:white;\\n";
@@ -12,38 +13,38 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
     graph.nodes.forEach(node => {
         const nodeId = node.id.replace(/[^a-zA-Z0-9]/g, '_');
-        const nodeLabel = \`\${node.name}\\n(\${node.telemetry.executionCount})\`;
-        
+        const nodeLabel = `${node.name}\\n(${node.telemetry.executionCount})`;
+
         let styleClass = 'zombie';
         if (node.status === 'verified') styleClass = 'verified';
         if (node.status === 'discovered') styleClass = 'discovered';
         if (node.status === 'error') styleClass = 'error';
 
-        mermaidDef += \`  \${nodeId}("\${nodeLabel}"):::\${styleClass};\\n\`;
+        mermaidDef += `  ${nodeId}("${nodeLabel}"):::${styleClass};\\n`;
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
-             const cleanDep = dep.replace(/[^a-zA-Z0-9]/g, '_');
-             const depId = \`dep_\${nodeId}_\${idx}\`;
-             mermaidDef += \`  \${depId}["\${dep}"]:::discovered;\\n\`;
-             mermaidDef += \`  \${nodeId} --> \${depId};\\n\`;
+            const cleanDep = dep.replace(/[^a-zA-Z0-9]/g, '_');
+            const depId = `dep_${nodeId}_${idx}`;
+            mermaidDef += `  ${depId}["${dep}"]:::discovered;\\n`;
+            mermaidDef += `  ${nodeId} --> ${depId};\\n`;
         });
     });
 
     // AI Section HTML
     let aiHtml = '';
     if (aiResult) {
-        aiHtml = \`
+        aiHtml = `
         <div class="card ai-summary">
-            <h3>🤖 Architect's Assessment <span class="badge score">\${aiResult.score}/100</span></h3>
-            <p>\${aiResult.summary}</p>
+            <h3>🤖 Architect's Assessment <span class="badge score">${aiResult.score}/100</span></h3>
+            <p>${aiResult.summary}</p>
             <h4>Identified Risks:</h4>
             <ul>
-                \${aiResult.risks.map(r => \`<li>\${r}</li>\`).join('')}
+                ${aiResult.risks.map(r => `<li>${r}</li>`).join('')}
             </ul>
-        </div>\`;
+        </div>`;
     }
 
-    return \`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -80,17 +81,17 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     <header>
         <h1>⚡ CodePulse Dashboard</h1>
         <div class="stats">
-            <span class="stat-item">Verified: <b>\${graph.summary.verified}</b></span>
-            <span class="stat-item">Zombies: <b>\${graph.summary.zombies}</b></span>
-            <span class="stat-item">Discovered: <b>\${graph.summary.discovered}</b></span>
+            <span class="stat-item">Verified: <b>${graph.summary.verified}</b></span>
+            <span class="stat-item">Zombies: <b>${graph.summary.zombies}</b></span>
+            <span class="stat-item">Discovered: <b>${graph.summary.discovered}</b></span>
         </div>
     </header>
     <main>
         <div id="graph-container">
-            <div class="mermaid">\${mermaidDef}</div>
+            <div class="mermaid">${mermaidDef}</div>
         </div>
         <aside id="details-panel">
-            \${aiHtml}
+            ${aiHtml}
             <h2>System Details</h2>
             <p style="opacity: 0.7">Click on any block in the diagram to view detailed runtime metrics.</p>
              <div id="node-list"></div>
@@ -98,7 +99,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     </main>
 
     <script>
-        const graphData = \${safeGraph};
+        const graphData = ${safeGraph};
         
         mermaid.initialize({ startOnLoad: true, theme: 'dark' });
 
@@ -118,5 +119,5 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
     </script>
 </body>
-</html>\`;
+</html>`;
 }

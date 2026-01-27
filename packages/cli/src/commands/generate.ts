@@ -76,7 +76,7 @@ export async function generate(options: { source: string; traces: string; output
     fs.writeFileSync(outPath, html);
 
     // Generate Markdown Tech Doc
-    const mdContent = TechDocGenerator.generate(result);
+    const mdContent = await TechDocGenerator.generate(result, provider);
     const mdPath = path.join(path.dirname(outPath), 'FLOW_ARCHITECTURE.md');
     fs.writeFileSync(mdPath, mdContent);
 

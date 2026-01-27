@@ -8,10 +8,10 @@
         "build": "tsc"
     },
     "dependencies": {
-        "@codepulse/core": "file:../core",
+        "@codepulse/core": "workspace:*",
         "@codepulse/plugin-java": "workspace:*",
-        "@codepulse/adapter-openai": "file:../adapter-openai",
-        "@codepulse/adapter-google": "file:../adapter-google",
+        "@codepulse/adapter-openai": "workspace:*",
+        "@codepulse/adapter-google": "workspace:*",
         "commander": "^10.0.0",
         "chalk": "^4.0.0",
         "dotenv": "^16.0.3"

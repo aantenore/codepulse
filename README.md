@@ -69,23 +69,29 @@ pnpm install
 pnpm run build
 ```
 
-### 2. Run the Playground
-We include a simulated Microservices environment (`OrderService` -> `InventoryService`).
-```bash
-# Stars Docker OTEL Collector & runs Java Apps
-./run_demo.ps1  # (Or ./run_demo.sh on Linux/Mac)
-```
+- **Automated**: `run_demo.ps1` orchestrates the entire flow using Docker Compose.
+- **Strict Hygiene**: Source control ignores all build artifacts and generated files.
 
-### 3. Generate the Dashboard
-After the demo script finishes (it generates traffic automatically):
-```bash
-# Generate the Living Report
-node packages/cli/dist/index.js generate \
-  --source ./playground \
-  --traces ./temp/traces/trace-dump.json \
-  --output report.html \
-  --ai mock
-```
+## 🚀 Quick Start (Simulation)
+1. **Prerequisites**: Docker Desktop, Java 21, Node.js 18+.
+2. **Setup**:
+   ```bash
+   pnpm install
+   pnpm run build
+   ```
+3. **Run Demo** (Chaos Mode v1.1.0):
+   ```powershell
+   ./run_demo.ps1
+   ```
+   This will:
+   - Build all services.
+   - Launch Order, Inventory, Payment, and OTel Collector via Docker.
+   - Simulate a transaction.
+
+4. **Verify**:
+   ```bash
+   node packages/cli/dist/index.js generate --source ./playground --traces temp/traces/trace-dump.json --output report.html --ai mock
+   ```
 
 > **Pro Tip:** To use the real AI Architect, set `export OPENAI_API_KEY=sk-...` and use `--ai openai`.
 

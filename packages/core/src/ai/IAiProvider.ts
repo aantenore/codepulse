@@ -9,6 +9,7 @@ export interface AiAnalysisResult {
 export interface IAiProvider {
     name: string;
     analyze(graph: ReconciledGraph): Promise<AiAnalysisResult>;
+    chat(prompt: string): Promise<string>;
 }
 
 export class MockAiProvider implements IAiProvider {
@@ -23,5 +24,9 @@ export class MockAiProvider implements IAiProvider {
             ],
             score: 85
         };
+    }
+
+    async chat(prompt: string): Promise<string> {
+        return "(Mock Chat) This is a simulated AI response. The system appears resilient but requires load testing on the Payment Service due to potential latency issues.";
     }
 }

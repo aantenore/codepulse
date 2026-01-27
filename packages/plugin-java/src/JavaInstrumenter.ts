@@ -154,7 +154,8 @@ export class JavaInstrumenter implements IInstrumenter {
                                 }
                             }
                             for (let i = 0; i < node.childCount; i++) {
-                                findCalls(node.child(i));
+                                const child = node.child(i);
+                                if (child) findCalls(child);
                             }
                         };
 

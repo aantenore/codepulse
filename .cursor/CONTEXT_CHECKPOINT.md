@@ -1,11 +1,20 @@
 # 📍 CodePulse Context Checkpoint
 
 ## 📅 Last Update
-2026-01-26
+2026-01-27
 
-## 🚀 Status: v1.0.0 RELEASE CANDIDATE (Configurable Models)
-**Current State:** Maintenance Mode
-The user has successfully implemented the MVP, added Google Gemini support, and made AI models configurable.
+## Current Status
+- **Phase:** Release v1.1.0 (Chaos & Clean)
+- **Status:** Stable
+- **Note:** Repo is clean of binaries/artifacts.
+- **State:**
+  - `playground` services containerized via Docker Compose.
+  - `run_demo.ps1` automates Build -> Docker -> Traffic.
+  - `.gitignore` strictly enforced.
+
+## Next Steps
+- [ ] Refine OTel networking for Docker Windows/WSL2 if needed.
+- [ ] Implement robust error handling for AI provider limits.
 
 ## 🏗 Architecture Status
 *   **Core:** `AdvancedFlowReconciler` + `IAiProvider` + `TechDocGenerator`.
