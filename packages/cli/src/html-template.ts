@@ -6,10 +6,10 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
     // Mermaid Definition
     let mermaidDef = "graph TD\n";
-    mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:white;\n";
-    mermaidDef += "  classDef zombie fill:#95a5a6,stroke:#7f8c8d,stroke-dasharray: 5 5,color:white;\n";
-    mermaidDef += "  classDef discovered fill:#3498db,stroke:#2980b9,color:white;\n";
-    mermaidDef += "  classDef error fill:#e74c3c,stroke:#c0392b,color:white;\n";
+    mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:#064e3b\n";
+    mermaidDef += "  classDef zombie fill:#94a3b8,stroke:#475569,stroke-dasharray: 5 5,color:#1e293b\n";
+    mermaidDef += "  classDef discovered fill:#8b5cf6,stroke:#6d28d9,color:white\n";
+    mermaidDef += "  classDef error fill:#ef4444,stroke:#991b1b,color:white\n";
 
     graph.nodes.forEach(node => {
         const nodeId = node.id.replace(/[^a-zA-Z0-9]/g, '_');
@@ -20,7 +20,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         if (node.status === 'discovered') styleClass = 'discovered';
         if (node.status === 'error') styleClass = 'error';
 
-        mermaidDef += `  ${nodeId}["${nodeLabel}"]:::${styleClass};\n`;
+        mermaidDef += `  ${nodeId}["${nodeLabel}"]:::${styleClass}\n`;
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const depId = `dep_${nodeId}_${idx}`;
@@ -35,7 +35,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         const targetId = edge.targetId.replace(/[^a-zA-Z0-9]/g, '_');
 
         // Only add edges if both nodes exist in the graph (or we'll have non-existent nodes in Mermaid)
-        mermaidDef += `  ${sourceId} -.->|${edge.type}| ${targetId};\n`;
+        mermaidDef += `  ${sourceId} -.->|${edge.type}| ${targetId}\n`;
     });
 
     // AI Section HTML
@@ -166,7 +166,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     </header>
     <main>
         <div id="graph-container">
-            <div class="mermaid">${mermaidDef.trim()}</div>
+            <div id="mermaid-render-target" class="mermaid"></div>
         </div>
         <aside id="details-panel">
             ${aiHtml}
@@ -178,8 +178,13 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
     <script>
         const graphData = ${safeGraph};
+        const mermaidSource = \`${mermaidDef.trim()}\`;
         
-        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+        mermaid.initialize({ 
+            startOnLoad: false, 
+            theme: 'dark',
+            securityLevel: 'loose'
+        });
 
         const nodeListDiv = document.getElementById('node-list');
         let listHtml = "<h3>All Nodes</h3>";
@@ -195,25 +200,34 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         
         nodeListDiv.innerHTML = listHtml;
 
-        // Wait for Mermaid to render the SVG
-        var interval = setInterval(function() {
-            var svgElement = document.querySelector('.mermaid svg');
-            if (svgElement) {
-                clearInterval(interval);
-                // Fix SVG dimensions for Zoom library
+        // Modern async Mermaid rendering
+        const renderGraph = async () => {
+            try {
+                const target = document.getElementById('mermaid-render-target');
+                const { svg } = await mermaid.render('mermaid-svg-internal', mermaidSource);
+                target.innerHTML = svg;
+                
+                const svgElement = target.querySelector('svg');
                 svgElement.setAttribute('width', '100%');
                 svgElement.setAttribute('height', '100%');
-                svgElement.style.maxWidth = 'none'; // Override mermaid default
+                svgElement.style.maxWidth = 'none';
 
-                // Enable Pan/Zoom
                 svgPanZoom(svgElement, {
                     zoomEnabled: true,
                     controlIconsEnabled: true,
                     fit: true,
-                    center: true
+                    center: true,
+                    minZoom: 0.1,
+                    maxZoom: 10
                 });
+            } catch (e) {
+                console.error("Mermaid Render Error:", e);
+                document.getElementById('mermaid-render-target').innerHTML = 
+                    "<div style='padding: 20px; color: #ef4444;'>Render Error: " + e.message + "</div>";
             }
-        }, 500); // Check every 500ms
+        };
+
+        renderGraph();
 
     </script>
 </body>
