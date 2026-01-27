@@ -20,7 +20,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         if (node.status === 'discovered') styleClass = 'discovered';
         if (node.status === 'error') styleClass = 'error';
 
-        mermaidDef += `  ${nodeId}("${nodeLabel}"):::${styleClass};\n`;
+        mermaidDef += `  ${nodeId}["${nodeLabel}"]:::${styleClass};\n`;
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const depId = `dep_${nodeId}_${idx}`;
@@ -107,7 +107,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         }
         .mermaid { 
             width: 100%; 
-            height: 100%; 
+            height: calc(100vh - 70px); 
             display: flex; 
             justify-content: center; 
             align-items: center;
@@ -166,9 +166,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     </header>
     <main>
         <div id="graph-container">
-            <div class="mermaid">
-${mermaidDef}
-            </div>
+            <div class="mermaid">${mermaidDef.trim()}</div>
         </div>
         <aside id="details-panel">
             ${aiHtml}
@@ -197,21 +195,25 @@ ${mermaidDef}
         
         nodeListDiv.innerHTML = listHtml;
 
-        window.onload = function() {
-            setTimeout(function() { // Wait for Mermaid
-                var svgElement = document.querySelector('.mermaid svg');
-                if (!svgElement) return;
+        // Wait for Mermaid to render the SVG
+        var interval = setInterval(function() {
+            var svgElement = document.querySelector('.mermaid svg');
+            if (svgElement) {
+                clearInterval(interval);
+                // Fix SVG dimensions for Zoom library
                 svgElement.setAttribute('width', '100%');
                 svgElement.setAttribute('height', '100%');
-                svgElement.style.maxWidth = 'none';
-                svgPanZoom(svgElement, { 
-                    zoomEnabled: true, 
-                    controlIconsEnabled: true, 
-                    fit: true, 
-                    center: true 
+                svgElement.style.maxWidth = 'none'; // Override mermaid default
+
+                // Enable Pan/Zoom
+                svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: true,
+                    fit: true,
+                    center: true
                 });
-            }, 1000);
-        };
+            }
+        }, 500); // Check every 500ms
 
     </script>
 </body>
