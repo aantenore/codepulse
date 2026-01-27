@@ -191,7 +191,6 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         
         nodeListDiv.innerHTML = listHtml;
 
-        // Modern async Mermaid rendering
         const renderGraph = async () => {
             try {
                 const target = document.getElementById('mermaid-render-target');
@@ -203,14 +202,21 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
                 svgElement.setAttribute('height', '100%');
                 svgElement.style.maxWidth = 'none';
 
-                svgPanZoom(svgElement, {
-                    zoomEnabled: true,
-                    controlIconsEnabled: true,
-                    fit: true,
-                    center: true,
-                    minZoom: 0.1,
-                    maxZoom: 10
-                });
+                // Initial Zoom/Pan with safety delay
+                setTimeout(() => {
+                    const panZoom = svgPanZoom(svgElement, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 10
+                    });
+                    panZoom.resize();
+                    panZoom.fit();
+                    panZoom.center();
+                }, 100);
+
             } catch (e) {
                 console.error("Mermaid Render Error:", e);
                 document.getElementById('mermaid-render-target').innerHTML = 

@@ -16,12 +16,12 @@ public class ShippingController {
 
         if (appTraceRef != null) {
             // MANUAL RECONSTRUCTION
-            // The infrastructure broke the trace, but Application Data saved it.
-            // We verify we received the ID.
             Span.current().setAttribute("app.restored_trace_parent", appTraceRef);
 
-            // In a full implementation, we would use a Propagator here.
-            // For this demo, the attribute proves the connection.
+            // HINT for CodePulse: The immediate caller is the Legacy Warehouse (Nginx)
+            Span.current().setAttribute("net.peer.name", "legacy-warehouse");
+            Span.current().setAttribute("net.peer.port", 80L);
+
             System.out.println("Restored Connection to Trace: " + appTraceRef);
         }
 
