@@ -107,9 +107,25 @@ export class AdvancedFlowReconciler {
         const allNodes = Array.from(nodeMap.values());
         const uniqueNodes = Array.from(new Map(allNodes.map(n => [n.id, n])).values());
 
+        // Reconcile Edges: Map targetId (e.g., "order-service.create") to actual node (e.g., "OrderController.create")
+        const reconciledEdges = staticGraph.edges.map(edge => {
+            let targetId = edge.targetId;
+            if (targetId.includes('.')) {
+                const [_, method] = targetId.split('.');
+                // Find a node that matches the method name or the route
+                const realTarget = uniqueNodes.find(n =>
+                    n.metadata?.methodName === method ||
+                    n.metadata?.route === `/${method}` ||
+                    n.metadata?.route === method
+                );
+                if (realTarget) targetId = realTarget.id;
+            }
+            return { ...edge, targetId };
+        });
+
         return {
             nodes: uniqueNodes,
-            edges: staticGraph.edges,
+            edges: reconciledEdges,
             summary: {
                 totalNodes: uniqueNodes.length,
                 verified: uniqueNodes.filter(n => n.status === 'verified' || n.status === 'error').length,

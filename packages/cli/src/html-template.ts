@@ -5,7 +5,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     const safeGraph = JSON.stringify(graph).replace(/</g, '\\u003c');
 
     // Mermaid Definition
-    let mermaidDef = "graph TD;\n";
+    let mermaidDef = "graph TD\n";
     mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:white;\n";
     mermaidDef += "  classDef zombie fill:#95a5a6,stroke:#7f8c8d,stroke-dasharray: 5 5,color:white;\n";
     mermaidDef += "  classDef discovered fill:#3498db,stroke:#2980b9,color:white;\n";
@@ -23,11 +23,19 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         mermaidDef += `  ${nodeId}("${nodeLabel}"):::${styleClass};\n`;
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
-            const cleanDep = dep.replace(/[^a-zA-Z0-9]/g, '_');
             const depId = `dep_${nodeId}_${idx}`;
             mermaidDef += `  ${depId}["${dep}"]:::discovered;\n`;
             mermaidDef += `  ${nodeId} --> ${depId};\n`;
         });
+    });
+
+    // Add Edges from Static Graph
+    graph.edges.forEach(edge => {
+        const sourceId = edge.sourceId.replace(/[^a-zA-Z0-9]/g, '_');
+        const targetId = edge.targetId.replace(/[^a-zA-Z0-9]/g, '_');
+
+        // Only add edges if both nodes exist in the graph (or we'll have non-existent nodes in Mermaid)
+        mermaidDef += `  ${sourceId} -.->|${edge.type}| ${targetId};\n`;
     });
 
     // AI Section HTML
@@ -51,31 +59,101 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodePulse Living Dashboard</title>
     <style>
-        :root { --bg: #1e1e1e; --text: #ecf0f1; --panel: #2d2d2d; --accent: #3498db; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: grid; grid-template-rows: 60px 1fr; height: 100vh; overflow: hidden; }
-        header { background: var(--panel); display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #444; justify-content: space-between; }
-        h1 { font-size: 1.2rem; margin: 0; color: var(--accent); }
-        .stats { display: flex; gap: 20px; font-size: 0.9rem; }
+        :root { 
+            --bg: #0f172a; 
+            --text: #f8fafc; 
+            --panel: #1e293b; 
+            --accent: #38bdf8; 
+            --verified: #22c55e;
+            --zombie: #94a3b8;
+            --error: #ef4444;
+            --discovered: #8b5cf6;
+        }
+        body { 
+            margin: 0; 
+            font-family: 'Outfit', 'Inter', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            display: grid; 
+            grid-template-rows: 70px 1fr; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        header { 
+            background: rgba(30, 41, 59, 0.8); 
+            backdrop-filter: blur(10px);
+            display: flex; 
+            align-items: center; 
+            padding: 0 30px; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            justify-content: space-between; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        h1 { font-size: 1.5rem; margin: 0; color: var(--accent); font-weight: 800; letter-spacing: -0.025em; }
+        .stats { display: flex; gap: 25px; font-size: 0.9rem; }
+        .stat-item { background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
         .stat-item b { color: var(--accent); }
         
-        main { display: grid; grid-template-columns: 1fr 350px; height: 100%; }
-        #graph-container { overflow: auto; padding: 20px; background: #1a1a1a; display: flex; justify-content: center; align-items: flex-start; }
-        aside { background: var(--panel); border-left: 1px solid #444; padding: 20px; overflow-y: auto; }
+        main { display: grid; grid-template-columns: 1fr 400px; height: 100%; }
+        #graph-container { 
+            overflow: hidden; 
+            padding: 0; 
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative;
+        }
+        .mermaid { 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+        aside { 
+            background: var(--panel); 
+            border-left: 1px solid rgba(255,255,255,0.1); 
+            padding: 30px; 
+            overflow-y: auto; 
+            box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+        }
         
-        .card { background: #333; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .card h3 { margin-top: 0; color: var(--accent); font-size: 1rem; display: flex; justify-content: space-between; }
-        .metric { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #444; padding-bottom: 4px; }
+        .card { 
+            background: rgba(255,255,255,0.03); 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .card:hover { background: rgba(255,255,255,0.05); transform: translateY(-2px); }
+        .card h3 { margin-top: 0; color: var(--accent); font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+        .metric { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
+        .metric span { opacity: 0.6; }
         
-        .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
-        .badge.verified { background: #2ecc71; color: #000; }
-        .badge.zombie { background: #95a5a6; color: #000; }
-        .badge.discovered { background: #3498db; color: #fff; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .badge.verified { background: var(--verified); color: #064e3b; }
+        .badge.zombie { background: var(--zombie); color: #0f172a; }
+        .badge.discovered { background: var(--discovered); color: white; }
+        .badge.error { background: var(--error); color: white; }
         
-        .ai-summary { border: 1px solid var(--accent); background: #263238; }
-        .ai-summary h3 { color: #fff; }
-        .badge.score { background: var(--accent); color: white; }
+        .ai-summary { 
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); 
+            color: white; 
+            border: none;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+        }
+        .ai-summary h3 { color: white; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        .badge.score { background: white; color: #2563eb; }
+        
+        h2 { font-size: 1.25rem; margin-top: 30px; margin-bottom: 15px; font-weight: 700; }
+        ul { padding-left: 20px; margin: 0; }
+        li { margin-bottom: 8px; opacity: 0.8; font-size: 0.9rem; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 </head>
 <body>
     <header>
@@ -88,7 +166,9 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     </header>
     <main>
         <div id="graph-container">
-            <div class="mermaid">${mermaidDef}</div>
+            <div class="mermaid">
+${mermaidDef}
+            </div>
         </div>
         <aside id="details-panel">
             ${aiHtml}
@@ -116,6 +196,26 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         });
         
         nodeListDiv.innerHTML = listHtml;
+
+        // Wait for Mermaid to render the SVG
+        var interval = setInterval(function() {
+            var svgElement = document.querySelector('.mermaid svg');
+            if (svgElement) {
+                clearInterval(interval);
+                // Fix SVG dimensions for Zoom library
+                svgElement.setAttribute('width', '100%');
+                svgElement.setAttribute('height', '100%');
+                svgElement.style.maxWidth = 'none'; // Override mermaid default
+
+                // Enable Pan/Zoom
+                svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: true,
+                    fit: true,
+                    center: true
+                });
+            }
+        }, 500); // Check every 500ms
 
     </script>
 </body>

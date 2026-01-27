@@ -17,65 +17,61 @@ export class JavaParser implements ICodeParser {
         const edges: CodeEdge[] = [];
         const rootNode = tree.rootNode;
 
-        // Global Annotation Scan (Fail-safe)
-        const annoRegex = /@(GetMapping|PostMapping|RequestMapping)\s*\(\s*"([^"]+)"\s*\)/g;
-        const lineMetadata: Record<number, { method: string, route: string }> = {};
-        const lines = fileContent.split('\n');
-
-        let classBasePath = "";
-        const classRMRegex = /@RequestMapping\s*\(\s*"([^"]+)"\s*\)\s*public\s+class/i;
-        const crMatch = fileContent.match(classRMRegex);
-        if (crMatch) classBasePath = crMatch[1];
-
-        lines.forEach((line, i) => {
-            let match;
-            const rowRegex = /@(GetMapping|PostMapping|RequestMapping)\s*\(\s*"([^"]+)"\s*\)/g;
-            while ((match = rowRegex.exec(line)) !== null) {
-                const fullRoute = (classBasePath + (match[2].startsWith('/') ? match[2] : '/' + match[2])).replace(/\/+/g, '/');
-                lineMetadata[i + 1] = {
-                    method: match[1].replace('Mapping', '').toUpperCase(),
-                    route: fullRoute
-                };
-            }
-        });
-
         const methodQuery = new Parser.Query(Java, `
-            (method_declaration name: (identifier) @methodName body: (block) @body) @method
+            (method_declaration) @method
         `);
 
-        // 1. Get Class Name
-        const classQuery = new Parser.Query(Java, `(class_declaration name: (identifier) @className) @class`);
+        // 1. Get Class Name and Class-level Route
+        const classQuery = new Parser.Query(Java, `(class_declaration) @class`);
         const classMatches = classQuery.matches(rootNode);
         let classIdentifier = "Unknown";
+        let classBasePath = "";
+
         for (const match of classMatches) {
-            const nameNode = match.captures.find(c => c.name === 'className')?.node;
+            const classNode = match.captures[0].node;
+            const nameNode = classNode.childForFieldName('name');
             if (nameNode) classIdentifier = nameNode.text;
+
+            const annotations = this.getAnnotations(classNode);
+            const rm = annotations.find(a => a.name === 'RequestMapping');
+            if (rm && rm.value) {
+                classBasePath = rm.value.startsWith('/') ? rm.value : '/' + rm.value;
+            }
         }
 
         // 2. Nodes (Methods)
         const methodMatches = methodQuery.matches(rootNode);
 
         for (const match of methodMatches) {
-            const methodNode = match.captures.find(c => c.name === 'method')?.node;
-            const methodName = match.captures.find(c => c.name === 'methodName')?.node.text;
-            const bodyNode = match.captures.find(c => c.name === 'body')?.node;
+            const methodNode = match.captures[0].node;
+            const nameNode = methodNode.childForFieldName('name');
+            const bodyNode = methodNode.childForFieldName('body');
 
-            if (!methodNode || !methodName || !bodyNode) continue;
+            if (!nameNode || !bodyNode) continue;
+            const methodName = nameNode.text;
 
-            const startLine = methodNode.startPosition.row + 1;
-            // Check current or previous line for metadata
-            const metadata = lineMetadata[startLine] || lineMetadata[startLine - 1] || {};
+            const annotations = this.getAnnotations(methodNode);
+            let httpMethod: string | undefined;
+            let route: string | undefined;
+
+            const am = annotations.find(a => ['GetMapping', 'PostMapping', 'RequestMapping'].includes(a.name));
+            if (am) {
+                httpMethod = am.name === 'GetMapping' ? 'GET' : (am.name === 'PostMapping' ? 'POST' : undefined);
+                const val = am.value || "";
+                route = (classBasePath + (val.startsWith('/') ? val : '/' + val)).replace(/\/+/g, '/');
+                if (route.endsWith('/') && route.length > 1) route = route.slice(0, -1);
+            }
 
             const id = `${classIdentifier}.${methodName}`;
             nodes.push({
                 id,
                 name: id,
                 type: 'method',
-                startLine,
+                startLine: methodNode.startPosition.row + 1,
                 endLine: methodNode.endPosition.row + 1,
                 metadata: {
-                    httpMethod: metadata.method,
-                    route: metadata.route,
+                    httpMethod,
+                    route,
                     className: classIdentifier,
                     methodName
                 }
@@ -108,5 +104,30 @@ export class JavaParser implements ICodeParser {
         }
 
         return { nodes, edges };
+    }
+
+    private getAnnotations(node: Parser.SyntaxNode): { name: string, value?: string }[] {
+        const results: { name: string, value?: string }[] = [];
+        const modifiers = node.childForFieldName('modifiers') || node.children.find(c => c.type === 'modifiers');
+
+        if (modifiers) {
+            modifiers.children.forEach(child => {
+                if (child.type === 'annotation') {
+                    const nameNode = child.childForFieldName('name');
+                    if (nameNode) {
+                        let value: string | undefined;
+                        const argsNode = child.childForFieldName('arguments');
+                        if (argsNode) {
+                            const stringNodes = argsNode.descendantsOfType('string_literal');
+                            if (stringNodes.length > 0) {
+                                value = stringNodes[0].text.replace(/"/g, '');
+                            }
+                        }
+                        results.push({ name: nameNode.text, value });
+                    }
+                }
+            });
+        }
+        return results;
     }
 }

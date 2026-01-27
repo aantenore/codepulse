@@ -16,7 +16,11 @@ export class GoogleAiProvider implements IAiProvider {
             // Actually, if apiKey is missing, prompt user? But this is headless mostly.
             console.warn('GOOGLE_API_KEY environment variable is not set. Google AI features will fail.');
         }
-        const modelName = process.env.AI_MODEL_GOOGLE || 'gemini-1.5-flash';
+        let modelName = process.env.AI_MODEL_GOOGLE || 'gemini-1.5-flash';
+        // FIX: Remove 'models/' prefix to avoid 404s (SDK adds it)
+        if (modelName.startsWith('models/')) {
+            modelName = modelName.replace('models/', '');
+        }
         console.log(`[AI] Using Google Gemini model: ${modelName}`);
 
         if (apiKey) {
@@ -73,11 +77,7 @@ Please provide a JSON response with the following structure (do not use markdown
             };
         } catch (error) {
             console.error('Gemini Analysis Failed:', error);
-            return {
-                summary: "Gemini Analysis Failed due to an error.",
-                risks: [`Error: ${error instanceof Error ? error.message : String(error)}`],
-                score: 0
-            };
+            throw error;
         }
     }
 

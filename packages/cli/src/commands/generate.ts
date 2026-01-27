@@ -1,12 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { AdvancedFlowReconciler, TraceSpan, CodeGraph, CodeNode, IAiProvider, MockAiProvider, AiAnalysisResult, ProjectParser } from '@codepulse/core';
+import { AdvancedFlowReconciler, TraceSpan, CodeGraph, CodeNode, AiAnalysisResult, ProjectParser, MockAiProvider } from '@codepulse/core';
 import { JavaParser } from '@codepulse/plugin-java';
-import { OpenAiProvider } from '@codepulse/adapter-openai';
-import { GoogleAiProvider } from '@codepulse/adapter-google';
 import { generateHtml } from '../html-template';
 import { TechDocGenerator } from '../generators/markdown-flow';
+import { ProviderManager } from '../providers/ProviderManager';
 
 // Mock Parser for MVP (Reuse)
 function mockParse(sourcePath: string): CodeGraph {
@@ -69,32 +68,15 @@ export async function generate(options: { source: string; traces: string; output
     const result = reconciler.reconcile(staticGraph, spans);
 
     // 2. AI Analysis
+    const provider = ProviderManager.getProvider(options.ai);
     let aiResult: AiAnalysisResult | undefined;
-    let provider: IAiProvider = new MockAiProvider(); // Default
-
-    if (options.ai === 'openai') {
-        const key = process.env.OPENAI_API_KEY;
-        if (!key) {
-            console.warn("[Warning] OPENAI_API_KEY missing. Falling back to Mock Provider.");
-        } else {
-            console.log("[AI] Using OpenAI Provider...");
-            provider = new OpenAiProvider(key);
-        }
-    } else if (options.ai === 'google') {
-        const key = process.env.GOOGLE_API_KEY;
-        if (!key) {
-            console.warn("[Warning] GOOGLE_API_KEY missing. Falling back to Mock Provider. Please check your .env file.");
-        } else {
-            console.log("[AI] Using Google Gemini Provider...");
-            provider = new GoogleAiProvider();
-        }
-    }
 
     try {
         console.log(`[AI] Running assessment with ${provider.name}...`);
         aiResult = await provider.analyze(result);
     } catch (e) {
-        console.error("[AI] Analysis failed", e);
+        console.warn(`[AI] ${provider.name} failed, falling back to Mock assessment.`, (e as Error).message);
+        aiResult = await new MockAiProvider().analyze(result);
     }
 
     // 3. Output
