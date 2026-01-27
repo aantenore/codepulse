@@ -35,11 +35,34 @@ export async function generate(options: { source: string; traces: string; output
 
     if (!fs.existsSync(options.traces)) { console.error(`Trace file missing: ${options.traces}`); process.exit(1); }
     const traceContent = fs.readFileSync(options.traces, 'utf-8');
-    let spans: TraceSpan[] = [];
+    let spans: any[] = [];
     try {
-        const raw = JSON.parse(traceContent);
-        if (Array.isArray(raw)) spans = raw;
-    } catch (e) { console.error("Invalid trace file"); }
+        // Handle line-delimited JSON or single JSON object
+        const lines = traceContent.split('\n').filter(l => l.trim().length > 0);
+        for (const line of lines) {
+            const raw = JSON.parse(line);
+
+            // Flatten OTLP structure: resourceSpans -> scopeSpans -> spans
+            if (raw.resourceSpans) {
+                raw.resourceSpans.forEach((rs: any) => {
+                    const resourceAttr = rs.resource?.attributes || [];
+                    rs.scopeSpans?.forEach((ss: any) => {
+                        ss.spans?.forEach((s: any) => {
+                            // Inject resource attributes into span for easier matching
+                            s.attributes = [...(s.attributes || []), ...resourceAttr];
+                            spans.push(s);
+                        });
+                    });
+                });
+            } else if (Array.isArray(raw)) {
+                spans.push(...raw);
+            } else {
+                spans.push(raw);
+            }
+        }
+    } catch (e) {
+        console.error(`[Error] Failed to parse trace file: ${(e as Error).message}`);
+    }
 
     // Reconcile
     const reconciler = new AdvancedFlowReconciler();

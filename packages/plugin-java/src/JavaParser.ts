@@ -17,16 +17,42 @@ export class JavaParser implements ICodeParser {
         const edges: CodeEdge[] = [];
         const rootNode = tree.rootNode;
 
-        const classQuery = new Parser.Query(Java, `
-            (class_declaration name: (identifier) @className) @class
-        `);
+        // Global Annotation Scan (Fail-safe)
+        const annoRegex = /@(GetMapping|PostMapping|RequestMapping)\s*\(\s*"([^"]+)"\s*\)/g;
+        const lineMetadata: Record<number, { method: string, route: string }> = {};
+        const lines = fileContent.split('\n');
+
+        let classBasePath = "";
+        const classRMRegex = /@RequestMapping\s*\(\s*"([^"]+)"\s*\)\s*public\s+class/i;
+        const crMatch = fileContent.match(classRMRegex);
+        if (crMatch) classBasePath = crMatch[1];
+
+        lines.forEach((line, i) => {
+            let match;
+            const rowRegex = /@(GetMapping|PostMapping|RequestMapping)\s*\(\s*"([^"]+)"\s*\)/g;
+            while ((match = rowRegex.exec(line)) !== null) {
+                const fullRoute = (classBasePath + (match[2].startsWith('/') ? match[2] : '/' + match[2])).replace(/\/+/g, '/');
+                lineMetadata[i + 1] = {
+                    method: match[1].replace('Mapping', '').toUpperCase(),
+                    route: fullRoute
+                };
+            }
+        });
+
         const methodQuery = new Parser.Query(Java, `
             (method_declaration name: (identifier) @methodName body: (block) @body) @method
         `);
 
-        // 1. Nodes (Methods) - We focus on Methods for the Flow
-        // We could also do Classes, but CodePulse seems to focus on Method-level flow (OrderController.create)
+        // 1. Get Class Name
+        const classQuery = new Parser.Query(Java, `(class_declaration name: (identifier) @className) @class`);
+        const classMatches = classQuery.matches(rootNode);
+        let classIdentifier = "Unknown";
+        for (const match of classMatches) {
+            const nameNode = match.captures.find(c => c.name === 'className')?.node;
+            if (nameNode) classIdentifier = nameNode.text;
+        }
 
+        // 2. Nodes (Methods)
         const methodMatches = methodQuery.matches(rootNode);
 
         for (const match of methodMatches) {
@@ -36,67 +62,39 @@ export class JavaParser implements ICodeParser {
 
             if (!methodNode || !methodName || !bodyNode) continue;
 
-            // Find Class Name
-            let parent = methodNode.parent;
-            let className = 'Unknown';
-            while (parent) {
-                if (parent.type === 'class_declaration') {
-                    const nameNode = parent.childForFieldName('name');
-                    if (nameNode) className = nameNode.text;
-                    break;
-                }
-                parent = parent.parent;
-            }
+            const startLine = methodNode.startPosition.row + 1;
+            // Check current or previous line for metadata
+            const metadata = lineMetadata[startLine] || lineMetadata[startLine - 1] || {};
 
-            const id = `${className}.${methodName}`;
+            const id = `${classIdentifier}.${methodName}`;
             nodes.push({
                 id,
                 name: id,
                 type: 'method',
-                startLine: methodNode.startPosition.row + 1,
-                endLine: methodNode.endPosition.row + 1
+                startLine,
+                endLine: methodNode.endPosition.row + 1,
+                metadata: {
+                    httpMethod: metadata.method,
+                    route: metadata.route,
+                    className: classIdentifier,
+                    methodName
+                }
             });
 
-            // 2. Edges (Outgoing Calls)
-            // Look for restTemplate.postForObject / getForObject
-            // Or simple method calls if we want internal flow
-            // For Micro-Commerce, we look for HTTP calls to other services
-
-            // Heuristic: URL strings in calls
-            // "http://payment-service:8084/pay"
-
-            // We scan the body for strings that look like URLs
-            // This is a robust heuristic for the demo
-
+            // 3. Edges (Outgoing Calls)
             const stringQuery = new Parser.Query(Java, `(string_literal) @str`);
             const stringMatches = stringQuery.matches(bodyNode);
 
             for (const sMatch of stringMatches) {
                 const strNode = sMatch.captures[0].node;
-                const text = strNode.text.replace(/"/g, ''); // strip quotes
-
-                // Detection logic: Generic URL Extraction
-                // Pattern: http://[hostname]:[port]/[endpoint]
-                // We map [hostname] to the Target Node ID.
-                // We map [endpoint] to the Target Method Name (heuristic).
-
+                const text = strNode.text.replace(/"/g, '');
                 const urlRegex = /http:\/\/([a-zA-Z0-9-]+)(:\d+)?(\/[a-zA-Z0-9-\/]+)?/;
-                const match = text.match(urlRegex);
+                const uMatch = text.match(urlRegex);
 
-                if (match) {
-                    const hostname = match[1]; // e.g., "auth-service"
-                    const path = match[3] || ""; // e.g., "/login" or "/api/order"
-
-                    // Generic Mapping:
-                    // Hostname "foo-service" -> Node "foo-service"
-                    // We don't assume "FooController" anymore unless we have a map.
-                    // But for the graph to look good, we can canonicalize "repo-foo" or "foo-service".
-
+                if (uMatch) {
+                    const hostname = uMatch[1];
+                    const path = uMatch[3] || "";
                     const targetNodeId = hostname;
-
-                    // Target Method: Last part of path, or 'root'
-                    // e.g., /login -> login
-                    // e.g., /api/order -> order
                     const pathParts = path.split('/').filter(p => p.length > 0);
                     const targetMethod = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'root';
 
