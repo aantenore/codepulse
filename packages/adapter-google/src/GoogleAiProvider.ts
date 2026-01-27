@@ -6,14 +6,11 @@ export class GoogleAiProvider implements IAiProvider {
     name = 'google';
     private genAI?: GoogleGenerativeAI;
     private model?: any;
+    private modelName: string;
 
     constructor() {
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) {
-            // We shouldn't throw error in constructor if not used, but let's keep it safe or just warn.
-            // The original code threw error.
-            // Let's check environment variable existence, but maybe allow instantiation?
-            // Actually, if apiKey is missing, prompt user? But this is headless mostly.
             console.warn('GOOGLE_API_KEY environment variable is not set. Google AI features will fail.');
         }
         let modelName = process.env.AI_MODEL_GOOGLE || 'gemini-1.5-flash';
@@ -21,11 +18,12 @@ export class GoogleAiProvider implements IAiProvider {
         if (modelName.startsWith('models/')) {
             modelName = modelName.replace('models/', '');
         }
-        console.log(`[AI] Using Google Gemini model: ${modelName}`);
+        this.modelName = modelName;
+        console.log(`[AI] Using Google Gemini model: ${this.modelName}`);
 
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
-            this.model = this.genAI.getGenerativeModel({ model: modelName });
+            this.model = this.genAI.getGenerativeModel({ model: this.modelName });
         }
     }
 
@@ -75,8 +73,13 @@ Please provide a JSON response with the following structure (do not use markdown
                 risks: analysis.risks || [],
                 score: analysis.score || 0
             };
-        } catch (error) {
-            console.error('Gemini Analysis Failed:', error);
+        } catch (error: any) {
+            console.error('Gemini Analysis Failed. Details:', {
+                message: error.message,
+                status: error.status,
+                statusText: error.statusText,
+                model: this.modelName
+            });
             throw error;
         }
     }

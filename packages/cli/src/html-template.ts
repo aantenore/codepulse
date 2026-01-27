@@ -197,25 +197,21 @@ ${mermaidDef}
         
         nodeListDiv.innerHTML = listHtml;
 
-        // Wait for Mermaid to render the SVG
-        var interval = setInterval(function() {
-            var svgElement = document.querySelector('.mermaid svg');
-            if (svgElement) {
-                clearInterval(interval);
-                // Fix SVG dimensions for Zoom library
+        window.onload = function() {
+            setTimeout(function() { // Wait for Mermaid
+                var svgElement = document.querySelector('.mermaid svg');
+                if (!svgElement) return;
                 svgElement.setAttribute('width', '100%');
                 svgElement.setAttribute('height', '100%');
-                svgElement.style.maxWidth = 'none'; // Override mermaid default
-
-                // Enable Pan/Zoom
-                svgPanZoom(svgElement, {
-                    zoomEnabled: true,
-                    controlIconsEnabled: true,
-                    fit: true,
-                    center: true
+                svgElement.style.maxWidth = 'none';
+                svgPanZoom(svgElement, { 
+                    zoomEnabled: true, 
+                    controlIconsEnabled: true, 
+                    fit: true, 
+                    center: true 
                 });
-            }
-        }, 500); // Check every 500ms
+            }, 1000);
+        };
 
     </script>
 </body>
