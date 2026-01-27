@@ -35,12 +35,11 @@ export class TechDocGenerator {
             Output strictly the Markdown content for this chapter. Do not allow markdown code blocks of the output itself.
             `;
 
-            // Call the AI provider's chat method
-            const analysis = await provider.chat(prompt);
-            md += analysis + "\n\n";
-
-        } catch (e) {
-            console.error("[AI] Generation Failed:", e);
+        } catch (e: any) {
+            console.error("[AI] Generation Failed Full Trace:", JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
+            if (e.response) {
+                console.error("[AI] API Response Body:", e.response.data);
+            }
             md += `> **Analysis Unavailable:** _The AI Provider encountered an error. Raw details logged to console._\n\n`;
             md += `### System Resilience (Static Fallback)\n`;
             md += `The system consists of ${graph.summary.totalNodes} nodes with ${graph.summary.discovered} discovered dependencies.\n`;
@@ -58,27 +57,30 @@ export class TechDocGenerator {
         md += `- **Zombie Code (Unused):** ${zombiePct}%\n`;
         md += `- **Discovered Dependencies:** ${graph.summary.discovered}\n\n`;
 
-        // Section 3: Data Flow Matrix
+        // Section 3: Data Flow Matrix (Generic)
         md += `## 3. Data Flow Matrix\n\n`;
-        md += `| Source Class | Method | Target Dependency |\n`;
+        md += `| Source Node | Interaction Type | Target Node |\n`;
         md += `|---|---|---|\n`;
 
-        const validNodes = graph.nodes.filter(n => n.status !== 'potentially_dead');
-        if (validNodes.length === 0) {
+        if (graph.edges.length === 0) {
             md += `| *No active flows detected* | - | - |\n`;
         } else {
-            validNodes.forEach(node => {
-                const parts = node.id.split('.');
-                const className = parts.length > 1 ? parts.slice(0, -1).join('.') : 'Global';
-                const methodName = parts.length > 1 ? parts[parts.length - 1] : node.id;
+            // Group by Source
+            const flows = new Map<string, string[]>();
 
-                const deps = node.telemetry.discoveredDependencies && node.telemetry.discoveredDependencies.length > 0
-                    ? node.telemetry.discoveredDependencies.join(', ')
-                    : '-';
+            for (const edge of graph.edges) {
+                const flow = `${edge.type}:${edge.targetId}`;
+                if (!flows.has(edge.sourceId)) {
+                    flows.set(edge.sourceId, []);
+                }
+                flows.get(edge.sourceId)?.push(flow);
+            }
 
-                md += `| \`${className}\` | \`${methodName}\` | ${deps} |\n`;
-            });
+            for (const [source, targets] of flows) {
+                md += `| \`${source}\` | \`calls\` | ${targets.join(', ')} |\n`;
+            }
         }
+        md += `\n`;
         md += `\n`;
 
         // Section 4: Anomalies

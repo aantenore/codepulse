@@ -87,6 +87,7 @@ export class AdvancedFlowReconciler {
 
         return {
             nodes: uniqueNodes,
+            edges: staticGraph.edges,
             summary: {
                 totalNodes: uniqueNodes.length,
                 verified: uniqueNodes.filter(n => n.status === 'verified').length,

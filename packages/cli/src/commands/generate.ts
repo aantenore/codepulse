@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { AdvancedFlowReconciler, TraceSpan, CodeGraph, CodeNode, IAiProvider, MockAiProvider, AiAnalysisResult } from '@codepulse/core';
+import { AdvancedFlowReconciler, TraceSpan, CodeGraph, CodeNode, IAiProvider, MockAiProvider, AiAnalysisResult, ProjectParser } from '@codepulse/core';
+import { JavaParser } from '@codepulse/plugin-java';
 import { OpenAiProvider } from '@codepulse/adapter-openai';
 import { GoogleAiProvider } from '@codepulse/adapter-google';
 import { generateHtml } from '../html-template';
@@ -24,15 +25,21 @@ export async function generate(options: { source: string; traces: string; output
     console.log(`[CodePulse] Generating Dashboard...`);
 
     // 1. Static & Dynamic Analysis
-    const staticGraph = mockParse(options.source);
+    console.log(`[CodePulse] Parsing Source Code at: ${options.source}`);
+    const projectParser = new ProjectParser();
+    projectParser.registerParser('.java', new JavaParser());
+
+    // Scan source
+    const staticGraph = await projectParser.parse(options.source);
+    console.log(`[CodePulse] Static Graph: ${staticGraph.nodes.length} nodes found.`);
+
     if (!fs.existsSync(options.traces)) { console.error(`Trace file missing: ${options.traces}`); process.exit(1); }
     const traceContent = fs.readFileSync(options.traces, 'utf-8');
     let spans: TraceSpan[] = [];
     try {
         const raw = JSON.parse(traceContent);
         if (Array.isArray(raw)) spans = raw;
-        // Basic array check, assume valid for MVP / previous parser logic
-    } catch (e) { /* Line parser fallback from previous step not repeated for brevity, relying on correct input */ }
+    } catch (e) { console.error("Invalid trace file"); }
 
     // Reconcile
     const reconciler = new AdvancedFlowReconciler();

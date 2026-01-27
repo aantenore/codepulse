@@ -5,28 +5,28 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     const safeGraph = JSON.stringify(graph).replace(/</g, '\\u003c');
 
     // Mermaid Definition
-    let mermaidDef = "graph TD;\\n";
-    mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:white;\\n";
-    mermaidDef += "  classDef zombie fill:#95a5a6,stroke:#7f8c8d,stroke-dasharray: 5 5,color:white;\\n";
-    mermaidDef += "  classDef discovered fill:#3498db,stroke:#2980b9,color:white;\\n";
-    mermaidDef += "  classDef error fill:#e74c3c,stroke:#c0392b,color:white;\\n";
+    let mermaidDef = "graph TD;\n";
+    mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:white;\n";
+    mermaidDef += "  classDef zombie fill:#95a5a6,stroke:#7f8c8d,stroke-dasharray: 5 5,color:white;\n";
+    mermaidDef += "  classDef discovered fill:#3498db,stroke:#2980b9,color:white;\n";
+    mermaidDef += "  classDef error fill:#e74c3c,stroke:#c0392b,color:white;\n";
 
     graph.nodes.forEach(node => {
         const nodeId = node.id.replace(/[^a-zA-Z0-9]/g, '_');
-        const nodeLabel = `${node.name}\\n(${node.telemetry.executionCount})`;
+        const nodeLabel = `${node.name}<br/>(${node.telemetry.executionCount})`;
 
         let styleClass = 'zombie';
         if (node.status === 'verified') styleClass = 'verified';
         if (node.status === 'discovered') styleClass = 'discovered';
         if (node.status === 'error') styleClass = 'error';
 
-        mermaidDef += `  ${nodeId}("${nodeLabel}"):::${styleClass};\\n`;
+        mermaidDef += `  ${nodeId}("${nodeLabel}"):::${styleClass};\n`;
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const cleanDep = dep.replace(/[^a-zA-Z0-9]/g, '_');
             const depId = `dep_${nodeId}_${idx}`;
-            mermaidDef += `  ${depId}["${dep}"]:::discovered;\\n`;
-            mermaidDef += `  ${nodeId} --> ${depId};\\n`;
+            mermaidDef += `  ${depId}["${dep}"]:::discovered;\n`;
+            mermaidDef += `  ${nodeId} --> ${depId};\n`;
         });
     });
 

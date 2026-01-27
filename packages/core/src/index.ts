@@ -9,3 +9,4 @@ export * from './ai/IAiProvider';
 // OR export only the class.
 export { FlowReconciler } from './FlowReconciler';
 export type { TraceSpan } from './FlowReconciler';
+export * from './parser/ProjectParser';
