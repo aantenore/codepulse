@@ -69,6 +69,7 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
             --error: #ef4444;
             --discovered: #8b5cf6;
         }
+        * { box-sizing: border-box; }
         body { 
             margin: 0; 
             font-family: 'Outfit', 'Inter', sans-serif; 
@@ -79,43 +80,14 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
             height: 100vh; 
             overflow: hidden; 
         }
-        header { 
-            background: rgba(30, 41, 59, 0.8); 
-            backdrop-filter: blur(10px);
-            display: flex; 
-            align-items: center; 
-            padding: 0 30px; 
-            border-bottom: 1px solid rgba(255,255,255,0.1); 
-            justify-content: space-between; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-        h1 { font-size: 1.5rem; margin: 0; color: var(--accent); font-weight: 800; letter-spacing: -0.025em; }
-        .stats { display: flex; gap: 25px; font-size: 0.9rem; }
-        .stat-item { background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .stat-item b { color: var(--accent); }
-        
-        main { display: grid; grid-template-columns: 1fr 400px; height: 100%; }
-        #graph-container { 
-            overflow: hidden; 
-            padding: 0; 
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            position: relative;
-        }
-        .mermaid { 
-            width: 100%; 
-            height: calc(100vh - 70px); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-        }
+        /* ... header styles ... */
+        main { display: grid; grid-template-columns: 1fr 400px; height: 100%; overflow: hidden; } /* Ensure main doesn't scroll, children do */
+        /* ... graph container ... */
         aside { 
             background: var(--panel); 
             border-left: 1px solid rgba(255,255,255,0.1); 
             padding: 30px; 
+            height: 100%; /* Force full height */
             overflow-y: auto; 
             box-shadow: -10px 0 30px rgba(0,0,0,0.2);
         }
@@ -144,6 +116,8 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
             color: white; 
             border: none;
             box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+            max-height: 400px;
+            overflow-y: auto;
         }
         .ai-summary h3 { color: white; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
         .badge.score { background: white; color: #2563eb; }

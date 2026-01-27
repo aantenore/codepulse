@@ -131,6 +131,21 @@ services:
     networks:
       - codepulse-net
 
+  legacy-warehouse:
+    image: nginx:alpine
+    container_name: legacy-warehouse
+    volumes:
+      - ./playground/legacy-data:/usr/share/nginx/html
+    ports:
+      - "9090:80"
+    networks:
+      - codepulse-net
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost/inventory.json" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 networks:
   codepulse-net:
     driver: bridge

@@ -36,10 +36,11 @@ The system follows a **Microservices Mesh** architecture.
 | **Gateway** | `/api/login` | Auth Service | Proxy passthrough. |
 | **Order** | `/create` | Product, Payment, Shipping | Orchestrates 3 downstream calls. Fails if any dependency fails. |
 | **Payment** | `/pay` | None | **Simulated Instability:** Contains random sleep (0-100ms) and a ~10% chance (`random > 8`) of throwing `RuntimeException("Payment Failed")`. |
-| **Product** | `/products` | None | Static response: "Product List". |
+| **Product** | `/products` | Legacy Warehouse | Fetches stock from legacy system via HTTP. |
 | **Shipping** | `/ship` | None | Static response: "Shipped". |
 | **Auth** | `/login` | None | Static response. |
 | **Auth** | `/reset-password` | None | **Zombie Endpoint:** Identified in source code but not referenced by Gateway or other services. |
+| **Legacy Warehouse** | `/inventory.json` | None | **Black Box:** Nginx container serving static JSON. No OTel instrumentation. Discovered via Inferred Spans. |
 
 ## 4. Sequence Diagram
 
@@ -49,6 +50,7 @@ sequenceDiagram
     participant Gateway
     participant Order
     participant Product
+    participant LegacyWarehouse
     participant Payment
     participant Shipping
 
@@ -57,6 +59,8 @@ sequenceDiagram
     
     note right of Order: Orchestration begins
     Order->>Product: GET /products
+    Product->>LegacyWarehouse: GET /inventory.json
+    LegacyWarehouse-->>Product: 200 OK (Stock Data)
     Product-->>Order: "Product List"
     
     Order->>Payment: POST /pay
