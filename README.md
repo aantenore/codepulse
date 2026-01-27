@@ -100,6 +100,10 @@ Open `report.html` in your browser to see the Mermaid diagram and AI assessment!
 
 ---
 
+## 🤝 Contributing
+-   **Core**: See `packages/core` for domain models.
+-   **Extensions**: Want to add Python support or Claude AI? Read [CONTRIBUTING_EXTENSIONS.md](docs/CONTRIBUTING_EXTENSIONS.md).
+
 ## 📦 Architecture
 
 *   **Manager:** Turborepo

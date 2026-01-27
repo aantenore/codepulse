@@ -13,6 +13,7 @@ export class TechDocGenerator {
         md += `## 1. System Resilience & Flow Analysis\n\n`;
 
         try {
+            console.log(`[AI] Generating Analysis with ${provider.name}...`);
             const prompt = `
             You are a Technical Writer and Software Architect.
             Analyze this CodePulse Graph (JSON).
@@ -39,7 +40,11 @@ export class TechDocGenerator {
             md += analysis + "\n\n";
 
         } catch (e) {
-            md += `_AI Generation Failed: ${e}_\n\n`;
+            console.error("[AI] Generation Failed:", e);
+            md += `> **Analysis Unavailable:** _The AI Provider encountered an error. Raw details logged to console._\n\n`;
+            md += `### System Resilience (Static Fallback)\n`;
+            md += `The system consists of ${graph.summary.totalNodes} nodes with ${graph.summary.discovered} discovered dependencies.\n`;
+            md += `Please check your API Key configuration if semantic analysis is required.\n\n`;
         }
 
         // Section 2: Executive Summary
