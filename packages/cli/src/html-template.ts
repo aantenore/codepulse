@@ -16,18 +16,27 @@ function mermaidLabel(text: string): string {
     return text.replace(/"/g, "'").replace(/[\n\r]/g, ' ');
 }
 
+const MERMAID_STATUS_STYLES: Record<string, string> = {
+    verified: 'fill:#22c55e,stroke:#16a34a,color:#052e16',
+    zombie: 'fill:#f59e0b,stroke:#d97706,color:#1c1917,stroke-dasharray: 5 5',
+    discovered: 'fill:#8b5cf6,stroke:#6d28d9,color:#fafafa',
+    error: 'fill:#ef4444,stroke:#b91c1c,color:#fafafa',
+};
+
 function buildMermaidDef(graph: ReconciledGraph): string {
     let def = "graph TD\n";
     def += "  classDef verified fill:#22c55e,stroke:#16a34a,color:#052e16\n";
-    def += "  classDef zombie fill:#71717a,stroke:#52525b,stroke-dasharray: 5 5,color:#fafafa\n";
+    def += "  classDef zombie fill:#f59e0b,stroke:#d97706,color:#1c1917,stroke-dasharray: 5 5\n";
     def += "  classDef discovered fill:#8b5cf6,stroke:#6d28d9,color:#fafafa\n";
     def += "  classDef error fill:#ef4444,stroke:#b91c1c,color:#fafafa\n";
 
+    const styleLines: string[] = [];
     graph.nodes.forEach((node) => {
         const nodeId = node.id.replace(/[^a-zA-Z0-9]/g, '_');
         const label = mermaidLabel(`${node.name}<br/>(${node.telemetry.executionCount})`);
         const status = node.status === 'verified' ? 'verified' : node.status === 'discovered' ? 'discovered' : node.status === 'error' ? 'error' : 'zombie';
         def += `  ${nodeId}["${label}"]:::${status}\n`;
+        styleLines.push(`  style ${nodeId} ${MERMAID_STATUS_STYLES[status]}`);
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const depId = `dep_${nodeId}_${idx}`;
@@ -38,6 +47,7 @@ function buildMermaidDef(graph: ReconciledGraph): string {
             } else {
                 def += `  ${depId}["${mermaidLabel(depLabel)}"]:::discovered;\n  ${nodeId} --> ${depId};\n`;
             }
+            styleLines.push(`  style ${depId} ${MERMAID_STATUS_STYLES.discovered}`);
         });
     });
 
@@ -47,6 +57,7 @@ function buildMermaidDef(graph: ReconciledGraph): string {
         def += `  ${sourceId} -.->|${edge.type}| ${targetId}\n`;
     });
 
+    if (styleLines.length > 0) def += '\n' + styleLines.join('\n');
     return def.trim();
 }
 
@@ -98,12 +109,17 @@ const DASHBOARD_STYLES = `
         .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 0 1.5rem; min-height: 2.25rem; border-bottom: 1px solid var(--border); background: var(--card); font-size: 0.75rem; color: var(--muted-foreground); }
         .legend-item { display: flex; align-items: center; gap: 0.35rem; }
         .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .legend-dot.verified { background: var(--chart-2); }
-        .legend-dot.zombie { background: var(--muted); }
+        .legend-dot.verified { background: #22c55e; }
+        .legend-dot.zombie { background: #f59e0b; }
         .legend-dot.discovered { background: var(--chart-1); }
         .legend-dot.error { background: var(--destructive); }
         main { display: block; height: 100%; position: relative; }
         #graph-container { height: 100%; margin-right: 380px; overflow: hidden; padding: 0; background: var(--background); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        #zoom-controls { position: absolute; bottom: 1rem; right: 1rem; display: flex; flex-direction: column; gap: 0.25rem; z-index: 20; }
+        #zoom-controls button { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; font-weight: 600; line-height: 1; transition: background 0.15s, border-color 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        #zoom-controls button:hover { background: var(--input); border-color: var(--input); }
+        #zoom-controls button:active { transform: scale(0.97); }
+        #zoom-controls button.zoom-reset { font-size: 0.75rem; font-weight: 500; }
         .mermaid { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         .graph-loading { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; color: var(--muted-foreground); font-size: 0.875rem; }
         .graph-loading::before { content: ''; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--chart-1); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -125,7 +141,7 @@ const DASHBOARD_STYLES = `
         .metric span { color: var(--muted-foreground); }
         .badge { display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; font-size: 0.6875rem; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; }
         .badge.verified { background: var(--chart-2); color: var(--success-foreground); }
-        .badge.zombie { background: var(--muted); color: var(--muted-foreground); }
+        .badge.zombie { background: #f59e0b; color: #1c1917; }
         .badge.discovered { background: var(--chart-1); color: oklch(0.985 0 0); }
         .badge.error { background: var(--destructive); color: var(--destructive-foreground); }
         .badge.score { background: var(--chart-1); color: white; }
@@ -197,6 +213,11 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
     <main>
         <div id="graph-container">
             <div id="mermaid-render-target" class="mermaid">${loadingHtml}</div>
+            <div id="zoom-controls" aria-label="Zoom" style="display: none;">
+                <button type="button" id="zoom-in" title="Zoom in">+</button>
+                <button type="button" id="zoom-reset" class="zoom-reset" title="Reset view">1:1</button>
+                <button type="button" id="zoom-out" title="Zoom out">−</button>
+            </div>
         </div>
         <aside id="details-panel">
             ${aiHtml}
@@ -230,10 +251,17 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
                     svgEl.setAttribute('height', '100%');
                     svgEl.style.maxWidth = 'none';
                     setTimeout(function() {
-                        var pz = svgPanZoom(svgEl, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true, minZoom: 0.1, maxZoom: 10 });
+                        var pz = svgPanZoom(svgEl, { zoomEnabled: true, controlIconsEnabled: false, fit: true, center: true, minZoom: 0.1, maxZoom: 10 });
                         pz.resize();
                         pz.fit();
                         pz.center();
+                        var zoomControls = document.getElementById('zoom-controls');
+                        if (zoomControls) {
+                            zoomControls.style.display = 'flex';
+                            document.getElementById('zoom-in').addEventListener('click', function() { pz.zoomIn(); });
+                            document.getElementById('zoom-reset').addEventListener('click', function() { pz.reset(); pz.resize(); pz.fit(); pz.center(); });
+                            document.getElementById('zoom-out').addEventListener('click', function() { pz.zoomOut(); });
+                        }
                     }, 300);
                 }
             } catch (e) {
