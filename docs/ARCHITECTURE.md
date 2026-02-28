@@ -43,6 +43,10 @@ CodePulse is a **Living Documentation Engine** that reconciles **static code str
 - **ReconciledGraph**: `CodeGraph`-like with nodes extended by `status` (`verified` | `potentially_dead` | `discovered` | `error`) and `telemetry` (executionCount, avgDurationMs, discoveredDependencies, etc.), plus a `summary` object.
 - **DEFAULT_SKIP_DIRS** (from `core/constants`): Directories skipped when walking the filesystem (`node_modules`, `.git`, `dist`, `target`, `build`). Used by ProjectParser and the CLI `run` command.
 
+## Orchestrator
+
+The **orchestrator** (who builds `CodeGraph` from multiple parsers and runs reconciliation) is the **CLI `generate` command**: it constructs a `ProjectParser`, registers parsers per extension, calls `parse(rootPath)`, then runs `AdvancedFlowReconciler` and AI. Core does not define a separate orchestrator type; the pipeline is explicit in `packages/cli/src/commands/generate.ts`. To reuse it programmatically, call `generate(options)` from the CLI module or duplicate the flow in your script.
+
 ## Extension Points
 
 - **New language**: Implement `ICodeParser` + optional `IInstrumenter`, add a `plugin-*` package, register parser in CLI `generate`.

@@ -39,6 +39,11 @@ export class JavaInstrumenter implements IInstrumenter {
                 }
             }
 
+            // Detect name collision: user-defined Span or Tracer (use FQN in injected code if so)
+            const hasSpanCollision = /\bSpan\s+[\w]+\s*[=;)]|\bclass\s+Span\b|\binterface\s+Span\b/.test(fileContent);
+            const hasTracerCollision = /\bTracer\s+[\w]+\s*[=;)]|\bclass\s+Tracer\b|\binterface\s+Tracer\b/.test(fileContent);
+            const useFqn = hasSpanCollision || hasTracerCollision;
+
             if (!hasOtelImport) {
                 edits.push({
                     start: lastImportEnd,
@@ -63,11 +68,12 @@ export class JavaInstrumenter implements IInstrumenter {
                 if (bodyNode) {
                     const openBrace = bodyNode.child(0);
                     if (openBrace && openBrace.type === '{') {
-                        if (!bodyNode.text.includes('private Tracer tracer')) {
+                        const tracerType = useFqn ? 'io.opentelemetry.api.trace.Tracer' : 'Tracer';
+                        if (!bodyNode.text.includes('Tracer tracer') && !bodyNode.text.includes('trace.Tracer tracer')) {
                             edits.push({
                                 start: openBrace.endIndex,
                                 end: openBrace.endIndex,
-                                text: `\n    // [CodePulse] Injection\n    @Autowired private Tracer tracer;\n`
+                                text: `\n    // [CodePulse] Injection\n    @Autowired private ${tracerType} tracer;\n`
                             });
                         }
                     }
@@ -104,6 +110,9 @@ export class JavaInstrumenter implements IInstrumenter {
                 if (methodBody) {
                     const openBrace = methodBody.child(0); // '{'
                     const closeBrace = methodBody.child(methodBody.childCount - 1); // '}'
+                    // Skip abstract/native methods (no block or empty block)
+                    if (!openBrace || !closeBrace || openBrace.type !== '{' || closeBrace.type !== '}') continue;
+                    if (methodBody.childCount <= 2) continue; // only { } — no body
 
                     if (openBrace && closeBrace && openBrace.type === '{' && closeBrace.type === '}') {
                         const startPos = openBrace.endIndex;
@@ -113,7 +122,8 @@ export class JavaInstrumenter implements IInstrumenter {
                             continue;
                         }
 
-                        const traceStart = `\n        // [CodePulse] Trace Start\n        Span span = tracer.spanBuilder("${pClassName}.${methodName}").startSpan();\n        try (var scope = span.makeCurrent()) {\n`;
+                        const spanType = useFqn ? 'io.opentelemetry.api.trace.Span' : 'Span';
+                        const traceStart = `\n        // [CodePulse] Trace Start\n        ${spanType} span = tracer.spanBuilder("${pClassName}.${methodName}").startSpan();\n        try (var scope = span.makeCurrent()) {\n`;
                         const traceEnd = `\n        } finally {\n            span.end();\n        }\n`;
 
                         edits.push({
@@ -193,15 +203,14 @@ export class JavaInstrumenter implements IInstrumenter {
             }
 
             // --- Apply Edits ---
-            edits.sort((a, b) => b.start - a.start);
-
-            let modified = fileContent;
-            for (const edit of edits) {
-                modified = modified.slice(0, edit.start) + edit.text + modified.slice(edit.end);
+            {
+                edits.sort((a, b) => b.start - a.start);
+                let modified = fileContent;
+                for (const edit of edits) {
+                    modified = modified.slice(0, edit.start) + edit.text + modified.slice(edit.end);
+                }
+                return modified;
             }
-
-            return modified;
-
         } catch (e) {
             console.error(`[CodePulse] Error instrumenting ${filePath}:`, e);
             return fileContent;

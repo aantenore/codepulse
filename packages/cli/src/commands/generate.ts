@@ -6,15 +6,16 @@ import { JavaParser } from '@codepulse/plugin-java';
 import { generateHtml } from '../html-template';
 import { TechDocGenerator } from '../generators/markdown-flow';
 import { ProviderManager } from '../providers/ProviderManager';
+import { loadConfig } from '../config';
 
 /** Ensure nano time fields are strings (OTLP JSON may provide numbers). */
-function normalizeSpanTimes(span: Record<string, unknown>): void {
+export function normalizeSpanTimes(span: Record<string, unknown>): void {
     if (typeof span.startTimeUnixNano !== 'string') span.startTimeUnixNano = String(span.startTimeUnixNano ?? '0');
     if (typeof span.endTimeUnixNano !== 'string') span.endTimeUnixNano = String(span.endTimeUnixNano ?? '0');
 }
 
 /** Normalize OTLP or raw span JSON into a flat list of span-like objects for the reconciler. */
-function parseTraceFile(content: string): TraceSpan[] {
+export function parseTraceFile(content: string): TraceSpan[] {
     const spans: TraceSpan[] = [];
     const lines = content.split('\n').filter((l) => l.trim().length > 0);
     for (const line of lines) {
@@ -57,7 +58,7 @@ export interface GenerateOptions {
     ai?: string;
 }
 
-function validateGenerateOptions(options: GenerateOptions): { source: string; traces: string; output: string } {
+export function validateGenerateOptions(options: GenerateOptions): { source: string; traces: string; output: string } {
     const source = path.resolve(options.source);
     const traces = path.resolve(options.traces);
     if (!fs.existsSync(source)) {
@@ -81,11 +82,12 @@ export async function generate(options: GenerateOptions): Promise<void> {
 
     console.log(`[CodePulse] Generating Dashboard...`);
 
-    // 1. Static & Dynamic Analysis
-    console.log(`[CodePulse] Parsing Source Code at: ${source}`);
+    const config = loadConfig();
     const projectParser = new ProjectParser();
+    if (config?.skipDirs?.length) projectParser.setSkipDirs(config.skipDirs);
     projectParser.registerParser('.java', new JavaParser());
 
+    console.log(`[CodePulse] Parsing Source Code at: ${source}`);
     const staticGraph = await projectParser.parse(source);
     console.log(`[CodePulse] Static Graph: ${staticGraph.nodes.length} nodes found.`);
 

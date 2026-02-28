@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/**/*.ts",
-    "test": "echo 'No tests yet'"
+    "test": "node --test dist/__tests__/"
   },
   "dependencies": {
     "@codepulse/core": "workspace:*",
@@ -16,7 +16,8 @@
     "@codepulse/adapter-google": "workspace:*",
     "commander": "^10.0.0",
     "chalk": "^4.0.0",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "inquirer": "^8.2.6"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

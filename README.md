@@ -63,6 +63,8 @@ Experience CodePulse locally in under 5 minutes using our **Micro-Commerce** pla
 *   Docker Desktop
 *   Java JDK 21
 
+For dependency and Tree-sitter setup details, see [docs/SETUP.md](docs/SETUP.md).
+
 ### 1. Setup & Build
 ```bash
 pnpm install
@@ -102,9 +104,9 @@ Open `report.html` in your browser. You'll see an interactive Mermaid graph wher
 
 | Command | Description |
 |--------|-------------|
-| `codepulse run --target <dir>` | Instrument all `.java` files in a directory (writes changes in-place). Skips `node_modules`, `.git`, `dist`, `target`, `build`. |
-| `codepulse inject <file>` | Instrument a single `.java` file in-place. |
-| `codepulse generate --source <path> --traces <path> [--output report.html] [--ai mock\|openai\|google]` | Parse source, merge with trace file, run AI analysis, and emit HTML dashboard + `FLOW_ARCHITECTURE.md`. |
+| `codepulse run --target <dir>` | Instrument all `.java` files in a directory (in-place). Use `--sidecar` to write to `<file>.instrumented.java`. Respects `codepulse.config.json` skipDirs. |
+| `codepulse inject <file>` | Instrument a single `.java` file. Use `--sidecar` or `--sidecar-output <path>` to write to a separate file. |
+| `codepulse generate --source <path> --traces <path> [--output report.html] [--ai mock\|openai\|google]` | Parse source, merge with trace file, run AI analysis, and emit HTML dashboard + `FLOW_ARCHITECTURE.md`. Use `--interactive` to be prompted for inputs. |
 
 **Examples (from repo root after `pnpm build`):**
 ```bash
@@ -113,7 +115,7 @@ pnpm run codepulse -- inject ./src/main/java/app/MyController.java
 pnpm run codepulse -- generate --source . --traces traces.json --output report.html --ai google
 ```
 
-Copy `.env.example` to `.env` and set `GOOGLE_API_KEY` or `OPENAI_API_KEY` when using real AI providers.
+Copy `.env.example` to `.env` and set `GOOGLE_API_KEY` or `OPENAI_API_KEY` when using real AI providers. Optionally add a `codepulse.config.json` in the project root (see `codepulse.config.example.json`) for `skipDirs`, `defaultSource`, `defaultTraces`, and `defaultOutput`.
 
 ---
 
@@ -140,9 +142,9 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for technical debt and planned work. Summ
 
 *   **More languages:** Python, Go, or TypeScript plugins (Tree-Sitter or TS compiler API).
 *   **Live trace ingestion:** Connect to an OTLP collector or Jaeger API instead of only reading a trace-dump file.
-*   **CI integration:** Fail or warn when zombie count or risk score exceeds a threshold; publish the dashboard as a job artifact.
+*   **CI integration:** Fail or warn when zombie count or risk score exceeds a threshold; publish the dashboard as a job artifact. (Basic CI workflow runs build, lint, test.)
 *   **Unify reconcilers:** Merge the legacy `FlowReconciler` and `MarkdownDocGenerator` with the advanced pipeline or document as deprecated.
-*   **Testing:** Add unit tests; `pnpm run test` currently runs a placeholder in each package.
+*   **Testing:** Unit tests for trace parsing, option validation, and reconciler summary exist in `packages/cli` and `packages/core`; run `pnpm run build && pnpm run test`.
 
 ## 📄 License
 

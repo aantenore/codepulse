@@ -1,0 +1,6 @@
+{
+  "skipDirs": ["node_modules", ".git", "dist", "target", "build", "out"],
+  "defaultSource": "./playground",
+  "defaultTraces": "temp/traces/trace-dump.json",
+  "defaultOutput": "report.html"
+}

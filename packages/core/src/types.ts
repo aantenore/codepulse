@@ -41,7 +41,9 @@ export interface ICodeParser {
 }
 
 export interface InjectionOptions {
-    mode: 'intrusive' | 'sidecar';
+    mode?: 'intrusive' | 'sidecar';
+    /** When mode is 'sidecar', write instrumented code to this path instead of overwriting source. */
+    sidecarOutputPath?: string;
     traceNameInfo?: {
         className?: string;
         methodName?: string;
