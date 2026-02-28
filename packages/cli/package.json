@@ -1,23 +1,25 @@
 {
-    "name": "@codepulse/cli",
-    "version": "0.0.1",
-    "bin": {
-        "codepulse": "./dist/index.js"
-    },
-    "scripts": {
-        "build": "tsc"
-    },
-    "dependencies": {
-        "@codepulse/core": "workspace:*",
-        "@codepulse/plugin-java": "workspace:*",
-        "@codepulse/adapter-openai": "workspace:*",
-        "@codepulse/adapter-google": "workspace:*",
-        "commander": "^10.0.0",
-        "chalk": "^4.0.0",
-        "dotenv": "^16.0.3"
-    },
-    "devDependencies": {
-        "typescript": "^5.0.0",
-        "@types/node": "^18.0.0"
-    }
+  "name": "@codepulse/cli",
+  "version": "0.0.1",
+  "bin": {
+    "codepulse": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@codepulse/core": "workspace:*",
+    "@codepulse/plugin-java": "workspace:*",
+    "@codepulse/adapter-openai": "workspace:*",
+    "@codepulse/adapter-google": "workspace:*",
+    "commander": "^10.0.0",
+    "chalk": "^4.0.0",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^18.0.0"
+  }
 }

@@ -1,67 +1,97 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { AdvancedFlowReconciler, TraceSpan, CodeGraph, CodeNode, AiAnalysisResult, ProjectParser, MockAiProvider } from '@codepulse/core';
+import { AdvancedFlowReconciler, TraceSpan, AiAnalysisResult, ProjectParser, MockAiProvider } from '@codepulse/core';
 import { JavaParser } from '@codepulse/plugin-java';
 import { generateHtml } from '../html-template';
 import { TechDocGenerator } from '../generators/markdown-flow';
 import { ProviderManager } from '../providers/ProviderManager';
 
-// Mock Parser for MVP (Reuse)
-function mockParse(sourcePath: string): CodeGraph {
-    const nodes: CodeNode[] = [
-        { id: 'OrderController.create', name: 'OrderController.create', type: 'method', startLine: 10, endLine: 20, metadata: {} },
-        { id: 'OrderController.legacyMethod', name: 'OrderController.legacyMethod', type: 'method', startLine: 50, endLine: 60, metadata: {} },
-        { id: 'InventoryController.check', name: 'InventoryController.check', type: 'method', startLine: 15, endLine: 25, metadata: {} }
-    ];
-    return { nodes, edges: [] };
+/** Ensure nano time fields are strings (OTLP JSON may provide numbers). */
+function normalizeSpanTimes(span: Record<string, unknown>): void {
+    if (typeof span.startTimeUnixNano !== 'string') span.startTimeUnixNano = String(span.startTimeUnixNano ?? '0');
+    if (typeof span.endTimeUnixNano !== 'string') span.endTimeUnixNano = String(span.endTimeUnixNano ?? '0');
 }
 
-export async function generate(options: { source: string; traces: string; output: string; ai?: string }) {
-    // Initialize dotenv to load environment variables
+/** Normalize OTLP or raw span JSON into a flat list of span-like objects for the reconciler. */
+function parseTraceFile(content: string): TraceSpan[] {
+    const spans: TraceSpan[] = [];
+    const lines = content.split('\n').filter((l) => l.trim().length > 0);
+    for (const line of lines) {
+        let raw: unknown;
+        try {
+            raw = JSON.parse(line);
+        } catch {
+            continue;
+        }
+        const obj = raw as Record<string, unknown>;
+        if (obj.resourceSpans && Array.isArray(obj.resourceSpans)) {
+            for (const rs of obj.resourceSpans as Array<{ resource?: { attributes?: unknown[] }; scopeSpans?: Array<{ spans?: unknown[] }> }>) {
+                const resourceAttr = rs.resource?.attributes ?? [];
+                for (const ss of rs.scopeSpans ?? []) {
+                    for (const s of ss.spans ?? []) {
+                        const span = s as Record<string, unknown>;
+                        span.attributes = [...((span.attributes as unknown[]) ?? []), ...resourceAttr];
+                        normalizeSpanTimes(span);
+                        spans.push(span as TraceSpan);
+                    }
+                }
+            }
+        } else if (Array.isArray(raw)) {
+            for (const item of raw as Record<string, unknown>[]) {
+                normalizeSpanTimes(item);
+                spans.push(item as TraceSpan);
+            }
+        } else {
+            normalizeSpanTimes(obj);
+            spans.push(obj as TraceSpan);
+        }
+    }
+    return spans;
+}
+
+export interface GenerateOptions {
+    source: string;
+    traces: string;
+    output: string;
+    ai?: string;
+}
+
+function validateGenerateOptions(options: GenerateOptions): { source: string; traces: string; output: string } {
+    const source = path.resolve(options.source);
+    const traces = path.resolve(options.traces);
+    if (!fs.existsSync(source)) {
+        throw new Error(`Source path does not exist: ${source}`);
+    }
+    const sourceStat = fs.statSync(source);
+    if (!sourceStat.isDirectory()) {
+        throw new Error(`Source path must be a directory: ${source}`);
+    }
+    if (!fs.existsSync(traces)) {
+        throw new Error(`Trace file does not exist: ${traces}`);
+    }
+    const outPath = path.resolve(options.output);
+    return { source, traces, output: outPath };
+}
+
+export async function generate(options: GenerateOptions): Promise<void> {
     dotenv.config();
+
+    const { source, traces, output } = validateGenerateOptions(options);
 
     console.log(`[CodePulse] Generating Dashboard...`);
 
     // 1. Static & Dynamic Analysis
-    console.log(`[CodePulse] Parsing Source Code at: ${options.source}`);
+    console.log(`[CodePulse] Parsing Source Code at: ${source}`);
     const projectParser = new ProjectParser();
     projectParser.registerParser('.java', new JavaParser());
 
-    // Scan source
-    const staticGraph = await projectParser.parse(options.source);
+    const staticGraph = await projectParser.parse(source);
     console.log(`[CodePulse] Static Graph: ${staticGraph.nodes.length} nodes found.`);
 
-    if (!fs.existsSync(options.traces)) { console.error(`Trace file missing: ${options.traces}`); process.exit(1); }
     const traceContent = fs.readFileSync(options.traces, 'utf-8');
-    let spans: any[] = [];
-    try {
-        // Handle line-delimited JSON or single JSON object
-        const lines = traceContent.split('\n').filter(l => l.trim().length > 0);
-        for (const line of lines) {
-            const raw = JSON.parse(line);
-
-            // Flatten OTLP structure: resourceSpans -> scopeSpans -> spans
-            if (raw.resourceSpans) {
-                raw.resourceSpans.forEach((rs: any) => {
-                    const resourceAttr = rs.resource?.attributes || [];
-                    rs.scopeSpans?.forEach((ss: any) => {
-                        ss.spans?.forEach((s: any) => {
-                            // Inject resource attributes into span for easier matching
-                            s.attributes = [...(s.attributes || []), ...resourceAttr];
-                            spans.push(s);
-                        });
-                    });
-                });
-            } else if (Array.isArray(raw)) {
-                spans.push(...raw);
-            } else {
-                spans.push(raw);
-            }
-        }
-    } catch (e) {
-        console.error(`[Error] Failed to parse trace file: ${(e as Error).message}`);
-    }
+    const spans = parseTraceFile(traceContent);
+    console.log(`[CodePulse] Loaded ${spans.length} trace spans.`);
 
     // Reconcile
     const reconciler = new AdvancedFlowReconciler();
@@ -80,19 +110,16 @@ export async function generate(options: { source: string; traces: string; output
     }
 
     // 3. Output
-    let outPath = options.output;
-    if (outPath.endsWith('.md')) outPath = 'report.html';
+    const outPathFinal = output.endsWith('.md') ? output.replace(/\.md$/, '.html') : output;
 
-    // Generate HTML Dashboard
     const html = generateHtml(result, aiResult);
-    fs.writeFileSync(outPath, html);
+    fs.writeFileSync(outPathFinal, html);
 
-    // Generate Markdown Tech Doc
     const mdContent = await TechDocGenerator.generate(result, provider);
-    const mdPath = path.join(path.dirname(outPath), 'FLOW_ARCHITECTURE.md');
+    const mdPath = path.join(path.dirname(outPathFinal), 'FLOW_ARCHITECTURE.md');
     fs.writeFileSync(mdPath, mdContent);
 
-    console.log(`[Success] Dashboard generated at: ${outPath}`);
+    console.log(`[Success] Dashboard generated at: ${outPathFinal}`);
     console.log(`[Success] Tech Docs generated at: ${mdPath}`);
     console.log(`Open it directly in your browser.`);
 }

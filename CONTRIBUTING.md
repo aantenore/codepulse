@@ -11,6 +11,8 @@ CodePulse is a TypeScript monorepo managed with **pnpm** and **Turborepo**.
 - `packages/plugin-java`: Language plugin for parsing Java source code using Tree-Sitter.
 - `packages/adapter-*`: AI provider implementations (Google Gemini, OpenAI).
 - `playground`: A multi-service Spring Boot environment for local testing.
+- `docs/ARCHITECTURE.md`: High-level data flow and extension points.
+- `docs/ROADMAP.md`: Planned work and technical debt (good source for first issues).
 
 ## 🚀 Getting Started
 
@@ -30,10 +32,11 @@ CodePulse is a TypeScript monorepo managed with **pnpm** and **Turborepo**.
    pnpm run build
    ```
 
-4. **Run Tests**:
+4. **Run tests** (placeholder per-package until unit tests are added):
    ```bash
    pnpm run test
    ```
+   See [docs/ROADMAP.md](docs/ROADMAP.md) for planned testing work.
 
 ## 🛠 Adding a New AI Provider
 
@@ -61,14 +64,14 @@ Create a `.scm` file in `packages/plugin-[lang]/queries/`. We use S-Expressions 
 ```
 
 ### Step 3: Implement the Parser Interface
-Implement `ICodeParser` in your `src/[Lang]Parser.ts`.
+Implement `ICodeParser` in your `src/[Lang]Parser.ts`. The interface takes **file content and path** (not a list of files); the CLI walks the tree and calls `parse` per file.
 ```typescript
 import { ICodeParser, CodeGraph } from '@codepulse/core';
 
 export class PythonParser implements ICodeParser {
-    async parse(files: string[]): Promise<CodeGraph> {
-        // Use tree-sitter-python to execute the query
-        // Map results to CodeNodes
+    async parse(fileContent: string, filePath: string): Promise<CodeGraph> {
+        // Use tree-sitter-python to parse fileContent
+        // Return { nodes, edges } for this file
     }
 }
 ```
@@ -83,8 +86,11 @@ projectParser.registerParser('.py', new PythonParser());
 
 - **TypeScript**: All new code must be in TypeScript.
 - **Interfaces**: Depend on interfaces in `core` rather than concrete implementations for extensibility.
+- **Validation**: Validate inputs at boundaries (CLI or public API); throw clear errors or exit with code 1. See [docs/PATTERNS_AND_PRACTICES.md](docs/PATTERNS_AND_PRACTICES.md).
+- **Security**: Escape any user or AI-generated content when embedding in HTML (e.g. dashboard) to prevent XSS.
+- **Paths**: Use `path.resolve()` for paths passed to core; use `DEFAULT_SKIP_DIRS` from core when walking directories so behavior matches the rest of the repo.
 - **Testing**: Add unit tests for new logic in the `__tests__` or `src/tests` directory of your package.
-- **Documentation**: Update the README if you add new features or commands.
+- **Documentation**: Update the README and, if relevant, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) or [docs/PATTERNS_AND_PRACTICES.md](docs/PATTERNS_AND_PRACTICES.md) when you add features or change behavior.
 
 ## 🐞 Reporting Issues
 

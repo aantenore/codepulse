@@ -1,20 +1,21 @@
 {
-    "name": "@codepulse/plugin-java",
-    "version": "0.0.1",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "scripts": {
-        "build": "tsc",
-        "lint": "eslint src/**/*.ts"
-    },
-    "dependencies": {
-        "@codepulse/core": "workspace:*",
-        "tree-sitter": "^0.21.1",
-        "tree-sitter-java": "^0.21.0",
-        "zod": "^3.0.0"
-    },
-    "devDependencies": {
-        "typescript": "^5.0.0",
-        "@types/node": "^18.0.0"
-    }
+  "name": "@codepulse/plugin-java",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@codepulse/core": "workspace:*",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-java": "^0.21.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^18.0.0"
+  }
 }

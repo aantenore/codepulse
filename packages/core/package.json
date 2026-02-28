@@ -1,17 +1,18 @@
 {
-    "name": "@codepulse/core",
-    "version": "0.0.1",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "scripts": {
-        "build": "tsc",
-        "lint": "eslint src/**/*.ts"
-    },
-    "devDependencies": {
-        "@types/node": "^18.0.0",
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "zod": "^3.25.76"
-    }
+  "name": "@codepulse/core",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "test": "echo 'No tests yet'"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  }
 }

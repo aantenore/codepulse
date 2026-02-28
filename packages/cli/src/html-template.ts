@@ -1,5 +1,14 @@
-import { ReconciledGraph } from '@codepulse/core';
-import { AiAnalysisResult } from '@codepulse/core/src/ai/IAiProvider';
+import { ReconciledGraph, AiAnalysisResult } from '@codepulse/core';
+
+/** Escape HTML to prevent XSS when interpolating AI or user content. */
+function escapeHtml(s: string): string {
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
 export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult): string {
     const safeGraph = JSON.stringify(graph).replace(/</g, '\\u003c');
@@ -49,16 +58,16 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         mermaidDef += `  ${sourceId} -.->|${edge.type}| ${targetId}\n`;
     });
 
-    // AI Section HTML
+    // AI Section HTML (escape to prevent XSS from AI-generated content)
     let aiHtml = '';
     if (aiResult) {
         aiHtml = `
         <div class="card ai-summary">
-            <h3>🤖 Architect's Assessment <span class="badge score">${aiResult.score}/100</span></h3>
-            <p>${aiResult.summary}</p>
+            <h3>🤖 Architect's Assessment <span class="badge score">${escapeHtml(String(aiResult.score))}/100</span></h3>
+            <p>${escapeHtml(aiResult.summary)}</p>
             <h4>Identified Risks:</h4>
             <ul>
-                ${aiResult.risks.map(r => `<li>${r}</li>`).join('')}
+                ${aiResult.risks.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}
             </ul>
         </div>`;
     }

@@ -1,17 +1,7 @@
 import { CodeGraph, CodeNode } from './types';
+import type { TraceSpan } from './trace';
 
-// Simple types for trace data (matching OTLP JSON export)
-export interface TraceSpan {
-    traceId: string;
-    spanId: string;
-    parentSpanId?: string;
-    name: string;
-    kind: number;
-    startTimeUnixNano: string;
-    endTimeUnixNano: string;
-    attributes?: { key: string; value: { stringValue?: string; intValue?: number } }[];
-    events?: { name: string; attributes?: { key: string; value: { stringValue: string } }[] }[];
-}
+export type { TraceSpan };
 
 export interface ReconciledNode extends CodeNode {
     telemetry?: {
@@ -46,7 +36,7 @@ export class FlowReconciler {
 
             let targetNode = nodeMap.get(spanName);
             if (!targetNode) {
-                // Try to finding by partial match if strictly needed, or just log
+                // Try to find by partial match if strictly needed, or just log
                 // For MVP, we assume exact match from instrumenter
                 return;
             }

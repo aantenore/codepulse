@@ -1,17 +1,19 @@
 {
-    "name": "@codepulse/adapter-google",
-    "version": "0.0.1",
-    "main": "./dist/index.js",
-    "scripts": {
-        "build": "tsc"
-    },
-    "dependencies": {
-        "@ai-sdk/google": "^3.0.13",
-        "@codepulse/core": "file:../core",
-        "ai": "^6.0.50"
-    },
-    "devDependencies": {
-        "@types/node": "^18.0.0",
-        "typescript": "^5.0.0"
-    }
+  "name": "@codepulse/adapter-google",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.13",
+    "@codepulse/core": "file:../core",
+    "ai": "^6.0.50"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
 }

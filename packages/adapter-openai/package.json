@@ -1,18 +1,19 @@
 {
-    "name": "@codepulse/adapter-openai",
-    "version": "0.0.1",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "scripts": {
-        "build": "tsc",
-        "lint": "eslint src/**/*.ts"
-    },
-    "dependencies": {
-        "@ai-sdk/openai": "^3.0.19",
-        "@codepulse/core": "file:../core",
-        "ai": "^6.0.50"
-    },
-    "devDependencies": {
-        "typescript": "^5.0.0"
-    }
+  "name": "@codepulse/adapter-openai",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.19",
+    "@codepulse/core": "file:../core",
+    "ai": "^6.0.50"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
 }

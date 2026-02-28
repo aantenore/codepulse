@@ -1,4 +1,4 @@
-import { CodeGraph, CodeNode, CodeEdge } from '../types';
+import { CodeNode, CodeEdge } from '../types';
 
 export type NodeStatus = 'verified' | 'potentially_dead' | 'discovered' | 'error';
 
@@ -15,7 +15,7 @@ export interface ReconciledNode extends CodeNode {
 
 export interface ReconciledGraph {
     nodes: ReconciledNode[];
-    edges: import('../types').CodeEdge[]; // explicit import or use CodeEdge if imported
+    edges: CodeEdge[];
     summary: {
         totalNodes: number;
         verified: number;

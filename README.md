@@ -81,13 +81,13 @@ This automated script will:
 5. Capture and dump OTel traces to `temp/traces/trace-dump.json`.
 
 ### 3. Generate the Dashboard
+From the repo root (after `pnpm build`):
 ```bash
-# Using Mock AI (No key needed)
-node packages/cli/dist/index.js generate --source ./playground --traces temp/traces/trace-dump.json --output report.html --ai mock
+# Using Mock AI (no API key needed)
+pnpm run codepulse -- generate --source ./playground --traces temp/traces/trace-dump.json --output report.html --ai mock
 
-# Using Google Gemini (Requires GOOGLE_API_KEY)
-# export GOOGLE_API_KEY=your_key
-node packages/cli/dist/index.js generate --source ./playground --traces temp/traces/trace-dump.json --output report.html --ai google
+# Using Google Gemini (set GOOGLE_API_KEY in .env)
+pnpm run codepulse -- generate --source ./playground --traces temp/traces/trace-dump.json --output report.html --ai google
 ```
 
 ### 4. View Results
@@ -95,6 +95,33 @@ Open `report.html` in your browser. You'll see a interactive Mermaid graph where
 *   Click nodes to see **executions** and **average duration**.
 *   See **discovered dependencies** (DB calls, external APIs).
 *   Identify the exact point of failure in failing flows.
+
+---
+
+## 📋 CLI Reference
+
+| Command | Description |
+|--------|-------------|
+| `codepulse run --target <dir>` | Instrument all `.java` files in a directory (writes changes in-place). Skips `node_modules`, `.git`, `dist`, `target`, `build`. |
+| `codepulse inject <file>` | Instrument a single `.java` file in-place. |
+| `codepulse generate --source <path> --traces <path> [--output report.html] [--ai mock\|openai\|google]` | Parse source, merge with trace file, run AI analysis, and emit HTML dashboard + `FLOW_ARCHITECTURE.md`. |
+
+**Examples (from repo root after `pnpm build`):**
+```bash
+pnpm run codepulse -- run --target ./src/main/java
+pnpm run codepulse -- inject ./src/main/java/app/MyController.java
+pnpm run codepulse -- generate --source . --traces traces.json --output report.html --ai google
+```
+
+Copy `.env.example` to `.env` and set `GOOGLE_API_KEY` or `OPENAI_API_KEY` when using real AI providers.
+
+---
+
+## Why CodePulse?
+
+Traditional docs go stale; traces alone are noisy. CodePulse **fuses** the two: you see which code is actually used, which is dead, and which dependencies only appear at runtime. The result is a single dashboard and markdown that stay aligned with production behavior—useful for refactors, onboarding, and deprecation decisions.
+
+For a deeper technical overview, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). For patterns and conventions (validation, security, error handling), see [docs/PATTERNS_AND_PRACTICES.md](docs/PATTERNS_AND_PRACTICES.md).
 
 ---
 
@@ -106,6 +133,16 @@ Check out our [Contributing Guide](CONTRIBUTING.md) to learn how to add language
 *   **Core:** Inversion of Control for Parsers and AI Providers.
 *   **Plugins:** `plugin-java` for AST analysis.
 *   **Adapters:** `adapter-google`, `adapter-openai`.
+
+## 🔮 Possible improvements & roadmap
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for technical debt and planned work. Summary:
+
+*   **More languages:** Python, Go, or TypeScript plugins (Tree-Sitter or TS compiler API).
+*   **Live trace ingestion:** Connect to an OTLP collector or Jaeger API instead of only reading a trace-dump file.
+*   **CI integration:** Fail or warn when zombie count or risk score exceeds a threshold; publish the dashboard as a job artifact.
+*   **Unify reconcilers:** Merge the legacy `FlowReconciler` and `MarkdownDocGenerator` with the advanced pipeline or document as deprecated.
+*   **Testing:** Add unit tests; `pnpm run test` currently runs a placeholder in each package.
 
 ## 📄 License
 

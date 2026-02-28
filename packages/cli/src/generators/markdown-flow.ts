@@ -1,5 +1,4 @@
-import { ReconciledGraph, ReconciledNode } from '@codepulse/core/src/reconciler/types';
-import { IAiProvider } from '@codepulse/core/src/ai/IAiProvider';
+import { ReconciledGraph, IAiProvider } from '@codepulse/core';
 
 export class TechDocGenerator {
     static async generate(graph: ReconciledGraph, provider: IAiProvider, projectName: string = 'CodePulse Project'): Promise<string> {
@@ -34,11 +33,13 @@ export class TechDocGenerator {
             
             Output strictly the Markdown content for this chapter. Do not allow markdown code blocks of the output itself.
             `;
-
-        } catch (e: any) {
-            console.error("[AI] Generation Failed Full Trace:", JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
-            if (e.response) {
-                console.error("[AI] API Response Body:", e.response.data);
+            const response = await provider.chat(prompt);
+            md += response.trim() + '\n\n';
+        } catch (e: unknown) {
+            const err = e as { response?: { data?: unknown } };
+            console.error("[AI] Generation Failed Full Trace:", JSON.stringify(e, e && typeof e === 'object' ? Object.getOwnPropertyNames(e) : [], 2));
+            if (err.response) {
+                console.error("[AI] API Response Body:", err.response.data);
             }
             md += `> **Analysis Unavailable:** _The AI Provider encountered an error. Raw details logged to console._\n\n`;
             md += `### System Resilience (Static Fallback)\n`;

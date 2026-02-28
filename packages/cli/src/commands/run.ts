@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { JavaInstrumenter } from '@codepulse/plugin-java';
+import { DEFAULT_SKIP_DIRS } from '@codepulse/core';
 
 // Basic verification that we can invoke the core logic
 export async function run(targetPath: string) {
@@ -8,40 +9,44 @@ export async function run(targetPath: string) {
 
     if (!targetPath) {
         console.error("Error: --target is required");
-        return;
+        process.exit(1);
     }
 
-    // MVP: Just find one Java file and try to instrument it to prove the concept
-    // In real life, we would walk the directory.
-
-    if (!fs.existsSync(targetPath)) {
-        console.error(`Error: Path ${targetPath} does not exist`);
-        return;
+    const resolved = path.resolve(targetPath);
+    if (!fs.existsSync(resolved)) {
+        console.error(`Error: Path ${resolved} does not exist`);
+        process.exit(1);
+    }
+    const stat = fs.statSync(resolved);
+    if (!stat.isDirectory()) {
+        console.error("Error: --target must be a directory. Use 'codepulse inject <file>' for a single file.");
+        process.exit(1);
     }
 
     const instrumenter = new JavaInstrumenter();
 
-    // Mock walker
-    const walk = (dir: string) => {
+    const walk = async (dir: string): Promise<void> => {
         const files = fs.readdirSync(dir);
         for (const file of files) {
             const fullPath = path.join(dir, file);
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
-                walk(fullPath);
+                if (!DEFAULT_SKIP_DIRS.includes(file)) {
+                    await walk(fullPath);
+                }
             } else if (file.endsWith('.java')) {
                 console.log(`Processing: ${file}`);
-                const content = fs.readFileSync(fullPath, 'utf-8');
-                instrumenter.inject(content, fullPath).then(mod => {
-                    // For MVP, just output to console or pretend to write
-                    // console.log(mod);
+                try {
+                    const content = fs.readFileSync(fullPath, 'utf-8');
+                    const modified = await instrumenter.inject(content, fullPath);
+                    fs.writeFileSync(fullPath, modified);
                     console.log(`[Success] Instrumented ${file}`);
-                }).catch(err => {
+                } catch (err) {
                     console.error(`[Error] Failed to instrument ${file}:`, err);
-                });
+                }
             }
         }
     };
 
-    walk(targetPath);
+    await walk(resolved);
 }

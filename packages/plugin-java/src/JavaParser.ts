@@ -52,9 +52,7 @@ export class JavaParser implements ICodeParser {
             }
         }
 
-        // 2. Nodes (Methods)
-        const methodMatches = methodQuery.matches(rootNode);
-
+        // 2. Nodes (Methods) — use methodMatches from query above
         for (const match of methodMatches) {
             const methodNode = match.captures[0].node;
             const nameNode = methodNode.childForFieldName('name');
@@ -102,9 +100,9 @@ export class JavaParser implements ICodeParser {
 
                 if (uMatch) {
                     const hostname = uMatch[1];
-                    const path = uMatch[3] || "";
+                    const urlPath = uMatch[3] || "";
                     const targetNodeId = hostname;
-                    const pathParts = path.split('/').filter(p => p.length > 0);
+                    const pathParts = urlPath.split('/').filter(p => p.length > 0);
                     const targetMethod = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'root';
 
                     edges.push({

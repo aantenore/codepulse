@@ -1,5 +1,5 @@
 import { CodeGraph } from '../types';
-import { TraceSpan } from '../FlowReconciler';
+import type { TraceSpan } from '../trace';
 import { ReconciledGraph, ReconciledNode } from './types';
 
 export class AdvancedFlowReconciler {
