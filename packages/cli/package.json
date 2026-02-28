@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/**/*.ts",
-    "test": "node --test dist/__tests__/"
+    "test": "node --test dist/__tests__/",
+    "generate:fixture": "node dist/index.js generate --source ../../playground --traces fixtures/trace-dump-otlp-real.json --output ../../report.html --ai mock"
   },
   "dependencies": {
     "@codepulse/core": "workspace:*",

@@ -60,6 +60,7 @@ describe('parseTraceFile', () => {
         assert.strictEqual(spans.length, 1);
         assert.strictEqual(spans[0].name, 'Otlp.span');
     });
+
 });
 
 describe('validateGenerateOptions', () => {
