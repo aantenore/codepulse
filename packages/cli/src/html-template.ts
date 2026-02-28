@@ -15,10 +15,10 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
     // Mermaid Definition
     let mermaidDef = "graph TD\n";
-    mermaidDef += "  classDef verified fill:#2ecc71,stroke:#27ae60,color:#064e3b\n";
-    mermaidDef += "  classDef zombie fill:#94a3b8,stroke:#475569,stroke-dasharray: 5 5,color:#1e293b\n";
-    mermaidDef += "  classDef discovered fill:#8b5cf6,stroke:#6d28d9,color:white\n";
-    mermaidDef += "  classDef error fill:#ef4444,stroke:#991b1b,color:white\n";
+    mermaidDef += "  classDef verified fill:#22c55e,stroke:#16a34a,color:#052e16\n";
+    mermaidDef += "  classDef zombie fill:#71717a,stroke:#52525b,stroke-dasharray: 5 5,color:#fafafa\n";
+    mermaidDef += "  classDef discovered fill:#8b5cf6,stroke:#6d28d9,color:#fafafa\n";
+    mermaidDef += "  classDef error fill:#ef4444,stroke:#b91c1c,color:#fafafa\n";
 
     graph.nodes.forEach(node => {
         const nodeId = node.id.replace(/[^a-zA-Z0-9]/g, '_');
@@ -33,152 +33,243 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 
         node.telemetry.discoveredDependencies.forEach((dep, idx) => {
             const depId = `dep_${nodeId}_${idx}`;
-            // Clean up label
             const label = dep.replace('API: ', '').replace('DB: ', '').replace('external_api_call:', '');
 
             if (label.includes('Caller:')) {
-                // Reverse Edge: External -> Node
                 const cleanLabel = label.replace('Caller: ', '');
                 mermaidDef += `  ${depId}["${cleanLabel}"]:::discovered;\n`;
                 mermaidDef += `  ${depId} --> ${nodeId};\n`;
             } else {
-                // Normal Edge: Node -> Dependency
                 mermaidDef += `  ${depId}["${label}"]:::discovered;\n`;
                 mermaidDef += `  ${nodeId} --> ${depId};\n`;
             }
         });
     });
 
-    // Add Edges from Static Graph
     graph.edges.forEach(edge => {
         const sourceId = edge.sourceId.replace(/[^a-zA-Z0-9]/g, '_');
         const targetId = edge.targetId.replace(/[^a-zA-Z0-9]/g, '_');
-
-        // Only add edges if both nodes exist in the graph (or we'll have non-existent nodes in Mermaid)
         mermaidDef += `  ${sourceId} -.->|${edge.type}| ${targetId}\n`;
     });
 
-    // AI Section HTML (escape to prevent XSS from AI-generated content)
     let aiHtml = '';
     if (aiResult) {
         aiHtml = `
         <div class="card ai-summary">
-            <h3>🤖 Architect's Assessment <span class="badge score">${escapeHtml(String(aiResult.score))}/100</span></h3>
-            <p>${escapeHtml(aiResult.summary)}</p>
-            <h4>Identified Risks:</h4>
-            <ul>
+            <h3 class="card-title">Architect's Assessment <span class="badge badge-score">${escapeHtml(String(aiResult.score))}/100</span></h3>
+            <p class="text-muted-foreground">${escapeHtml(aiResult.summary)}</p>
+            <h4 class="text-sm font-medium mt-3 mb-1">Identified Risks</h4>
+            <ul class="list-disc pl-4 space-y-1 text-muted-foreground text-sm">
                 ${aiResult.risks.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}
             </ul>
         </div>`;
     }
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodePulse Living Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --bg: #0f172a; 
-            --text: #f8fafc; 
-            --panel: #1e293b; 
-            --accent: #38bdf8; 
-            --verified: #22c55e;
-            --zombie: #94a3b8;
-            --error: #ef4444;
-            --discovered: #8b5cf6;
-        }
         * { box-sizing: border-box; }
-        body { 
-            margin: 0; 
-            font-family: 'Outfit', 'Inter', sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            display: grid; 
-            grid-template-rows: 70px 1fr; 
-            height: 100vh; 
-            overflow: hidden; 
+        :root {
+            --radius: 0.625rem;
+            --background: oklch(0.145 0 0);
+            --foreground: oklch(0.985 0 0);
+            --card: oklch(0.205 0 0);
+            --card-foreground: oklch(0.985 0 0);
+            --popover: oklch(0.269 0 0);
+            --popover-foreground: oklch(0.985 0 0);
+            --primary: oklch(0.922 0 0);
+            --primary-foreground: oklch(0.205 0 0);
+            --secondary: oklch(0.269 0 0);
+            --secondary-foreground: oklch(0.985 0 0);
+            --muted: oklch(0.269 0 0);
+            --muted-foreground: oklch(0.708 0 0);
+            --accent: oklch(0.371 0 0);
+            --accent-foreground: oklch(0.985 0 0);
+            --destructive: oklch(0.704 0.191 22.216);
+            --destructive-foreground: oklch(0.985 0 0);
+            --border: oklch(1 0 0 / 10%);
+            --input: oklch(1 0 0 / 15%);
+            --ring: oklch(0.556 0 0);
+            --chart-1: oklch(0.488 0.243 264.376);
+            --chart-2: oklch(0.696 0.17 162.48);
+            --sidebar: oklch(0.205 0 0);
+            --sidebar-foreground: oklch(0.985 0 0);
+            --sidebar-border: oklch(1 0 0 / 10%);
+            --success: oklch(0.696 0.17 162.48);
+            --success-foreground: oklch(0.15 0.02 162);
         }
-        /* ... header styles ... */
-        /* ... header styles ... */
-        main { display: block; height: 100%; position: relative; } 
-        #graph-container { 
+        body {
+            margin: 0;
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            display: grid;
+            grid-template-rows: 3.5rem 1fr;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            height: 3.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--card);
+        }
+        header h1 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.025em;
+        }
+        .stats {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .stat-item {
+            color: var(--muted-foreground);
+            font-size: 0.8125rem;
+        }
+        .stat-item b {
+            color: var(--foreground);
+            font-weight: 600;
+        }
+        main {
+            display: block;
             height: 100%;
-            margin-right: 400px; /* Reserve space for fixed sidebar */
-            overflow: hidden; 
-            padding: 0; 
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
             position: relative;
         }
-        .mermaid { 
-            width: 100%; 
-            height: 100%; 
-            display: flex; 
-            justify-content: center; 
+        #graph-container {
+            height: 100%;
+            margin-right: 380px;
+            overflow: hidden;
+            padding: 0;
+            background: var(--background);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .mermaid {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
             align-items: center;
         }
-        aside { 
+        aside {
             position: fixed;
             right: 0;
-            top: 70px; /* Header height */
+            top: 3.5rem;
             bottom: 0;
-            width: 400px;
-            background: var(--panel); 
-            border-left: 1px solid rgba(255,255,255,0.1); 
-            padding: 30px; 
-            overflow-y: auto; 
-            box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+            width: 380px;
+            background: var(--sidebar);
+            border-left: 1px solid var(--sidebar-border);
+            padding: 1.25rem;
+            overflow-y: auto;
             z-index: 10;
         }
-        
-        .card { 
-            background: rgba(255,255,255,0.03); 
-            padding: 20px; 
-            border-radius: 12px; 
-            margin-bottom: 20px; 
-            border: 1px solid rgba(255,255,255,0.05);
-            transition: transform 0.2s, background 0.2s;
+        .card {
+            background: var(--card);
+            color: var(--card-foreground);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .card:hover { background: rgba(255,255,255,0.05); transform: translateY(-2px); }
-        .card h3 { margin-top: 0; color: var(--accent); font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
-        .metric { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
-        .metric span { opacity: 0.6; }
-        
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .badge.verified { background: var(--verified); color: #064e3b; }
-        .badge.zombie { background: var(--zombie); color: #0f172a; }
-        .badge.discovered { background: var(--discovered); color: white; }
-        .badge.error { background: var(--error); color: white; }
-        
-        .ai-summary { 
-            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); 
-            color: white; 
-            border: none;
-            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
-            max-height: 400px;
-            overflow-y: auto;
+        .card:hover {
+            border-color: var(--input);
         }
-        .ai-summary h3 { color: white; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
-        .badge.score { background: white; color: #2563eb; }
-        
-        h2 { font-size: 1.25rem; margin-top: 30px; margin-bottom: 15px; font-weight: 700; }
-        ul { padding-left: 20px; margin: 0; }
-        li { margin-bottom: 8px; opacity: 0.8; font-size: 0.9rem; }
+        .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .card h4 {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            margin: 0 0 0.25rem 0;
+        }
+        .text-muted-foreground { color: var(--muted-foreground); }
+        .text-sm { font-size: 0.8125rem; }
+        .font-medium { font-weight: 500; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .pl-4 { padding-left: 1rem; }
+        .space-y-1 > * + * { margin-top: 0.25rem; }
+        .list-disc { list-style-type: disc; }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.375rem 0;
+            font-size: 0.8125rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric span { color: var(--muted-foreground); }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge.verified { background: var(--chart-2); color: var(--success-foreground); }
+        .badge.zombie { background: var(--muted); color: var(--muted-foreground); }
+        .badge.discovered { background: var(--chart-1); color: oklch(0.985 0 0); }
+        .badge.error { background: var(--destructive); color: var(--destructive-foreground); }
+        .badge.score { background: var(--primary); color: var(--primary-foreground); }
+        .ai-summary {
+            background: linear-gradient(135deg, oklch(0.488 0.243 264.376 / 0.25) 0%, oklch(0.269 0 0) 100%);
+            border-color: oklch(0.488 0.243 264.376 / 0.4);
+        }
+        .ai-summary .card-title { color: var(--foreground); }
+        .ai-summary .badge-score { background: var(--chart-1); color: white; }
+        h2 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+        #node-list ul {
+            padding-left: 1rem;
+            margin: 0.25rem 0 0 0;
+        }
+        #node-list li {
+            margin-bottom: 0.25rem;
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 </head>
 <body>
     <header>
-        <h1>⚡ CodePulse Dashboard v1.4 (Fixed Layout)</h1>
+        <h1>CodePulse Dashboard</h1>
         <div class="stats">
-            <span class="stat-item">Verified: <b>${graph.summary.verified}</b></span>
-            <span class="stat-item">Zombies: <b>${graph.summary.zombies}</b></span>
-            <span class="stat-item">Discovered: <b>${graph.summary.discovered}</b></span>
+            <span class="stat-item">Verified <b>${graph.summary.verified}</b></span>
+            <span class="stat-item">Zombies <b>${graph.summary.zombies}</b></span>
+            <span class="stat-item">Discovered <b>${graph.summary.discovered}</b></span>
         </div>
     </header>
     <main>
@@ -188,33 +279,33 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         <aside id="details-panel">
             ${aiHtml}
             <h2>System Details</h2>
-            <p style="opacity: 0.7">Click on any block in the diagram to view detailed runtime metrics.</p>
-             <div id="node-list"></div>
+            <p class="text-muted-foreground text-sm">Click a node in the diagram to view runtime metrics.</p>
+            <div id="node-list"></div>
         </aside>
     </main>
 
     <script>
         const graphData = ${safeGraph};
         const mermaidSource = \`${mermaidDef.trim()}\`;
-        
-        mermaid.initialize({ 
-            startOnLoad: false, 
+
+        mermaid.initialize({
+            startOnLoad: false,
             theme: 'dark',
             securityLevel: 'loose'
         });
 
         const nodeListDiv = document.getElementById('node-list');
-        let listHtml = "<h3>All Nodes</h3>";
-        
+        let listHtml = '<h3 class="card-title" style="margin-bottom: 0.75rem">All Nodes</h3>';
+
         graphData.nodes.forEach(node => {
             listHtml += \`<div class="card">
-                <h3>\${node.name} <span class="badge \${node.status}">\${node.status}</span></h3>
+                <h3 class="card-title">\${node.name} <span class="badge \${node.status}">\${node.status}</span></h3>
                 <div class="metric"><span>Executions</span> <b>\${node.telemetry.executionCount}</b></div>
                 <div class="metric"><span>Avg Duration</span> <b>\${node.telemetry.avgDurationMs}ms</b></div>
-                \${node.telemetry.discoveredDependencies.length ? '<h4>Dependencies:</h4><ul>' + node.telemetry.discoveredDependencies.map(d => '<li>'+d+'</li>').join('') + '</ul>' : ''}
+                \${node.telemetry.discoveredDependencies.length ? '<h4 class="text-sm font-medium">Dependencies</h4><ul>' + node.telemetry.discoveredDependencies.map(d => '<li>'+d+'</li>').join('') + '</ul>' : ''}
             </div>\`;
         });
-        
+
         nodeListDiv.innerHTML = listHtml;
 
         const renderGraph = async () => {
@@ -222,13 +313,12 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
                 const target = document.getElementById('mermaid-render-target');
                 const { svg } = await mermaid.render('mermaid-svg-internal', mermaidSource);
                 target.innerHTML = svg;
-                
+
                 const svgElement = target.querySelector('svg');
                 svgElement.setAttribute('width', '100%');
                 svgElement.setAttribute('height', '100%');
                 svgElement.style.maxWidth = 'none';
 
-                // Initial Zoom/Pan with safety delay
                 setTimeout(() => {
                     const panZoom = svgPanZoom(svgElement, {
                         zoomEnabled: true,
@@ -242,16 +332,14 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
                     panZoom.fit();
                     panZoom.center();
                 }, 500);
-
             } catch (e) {
                 console.error("Mermaid Render Error:", e);
-                document.getElementById('mermaid-render-target').innerHTML = 
-                    "<div style='padding: 20px; color: #ef4444;'>Render Error: " + e.message + "</div>";
+                document.getElementById('mermaid-render-target').innerHTML =
+                    "<div style='padding: 1.25rem; color: var(--destructive); font-size: 0.875rem'>Render Error: " + e.message + "</div>";
             }
         };
 
         renderGraph();
-
     </script>
 </body>
 </html>`;
