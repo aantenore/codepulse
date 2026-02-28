@@ -51,14 +51,15 @@ function buildMermaidDef(graph: ReconciledGraph): string {
 }
 
 function renderNodeListHtml(nodes: ReconciledNode[]): string {
-    let html = '<h3 class="card-title" style="margin-bottom: 0.75rem">All Nodes</h3>';
+    let html = '';
     for (const node of nodes) {
+        const badgeLabel = node.status === 'potentially_dead' ? 'zombie' : node.status;
         const deps = node.telemetry.discoveredDependencies;
         const depsHtml = deps.length
             ? `<h4 class="text-sm font-medium">Dependencies</h4><ul>${deps.map((d) => `<li>${escapeHtml(d)}</li>`).join('')}</ul>`
             : '';
-        html += `<div class="card">
-            <h3 class="card-title">${escapeHtml(node.name)} <span class="badge ${escapeHtml(node.status)}">${escapeHtml(node.status)}</span></h3>
+        html += `<div class="card node-card" data-status="${escapeHtml(node.status)}">
+            <h3 class="card-title">${escapeHtml(node.name)} <span class="badge ${escapeHtml(badgeLabel)}">${escapeHtml(badgeLabel)}</span></h3>
             <div class="metric"><span>Executions</span> <b>${node.telemetry.executionCount}</b></div>
             <div class="metric"><span>Avg Duration</span> <b>${node.telemetry.avgDurationMs}ms</b></div>
             ${depsHtml}
@@ -131,6 +132,13 @@ const DASHBOARD_STYLES = `
         .ai-summary { background: linear-gradient(135deg, oklch(0.488 0.243 264.376 / 0.25) 0%, oklch(0.269 0 0) 100%); border-color: oklch(0.488 0.243 264.376 / 0.4); }
         .ai-summary .card-title { color: var(--foreground); }
         h2 { font-size: 0.9375rem; font-weight: 600; margin: 1.5rem 0 0.75rem 0; }
+        .subtitle { font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.15rem; font-weight: 400; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.75rem; }
+        .filter-btn { padding: 0.25rem 0.6rem; font-size: 0.6875rem; font-weight: 600; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+        .filter-btn:hover { border-color: var(--input); color: var(--foreground); }
+        .filter-btn.active { background: var(--chart-1); border-color: var(--chart-1); color: white; }
+        .node-card--hidden { display: none; }
+        .empty-filter { padding: 1rem; text-align: center; color: var(--muted-foreground); font-size: 0.8125rem; }
         #node-list ul { padding-left: 1rem; margin: 0.25rem 0 0 0; }
         #node-list li { margin-bottom: 0.25rem; font-size: 0.8125rem; color: var(--muted-foreground); }
 `;
@@ -170,7 +178,10 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
 </head>
 <body>
     <header>
-        <h1>CodePulse Dashboard</h1>
+        <div>
+            <h1>CodePulse Dashboard</h1>
+            <p class="subtitle">Static code vs runtime traces — see what is actually used.</p>
+        </div>
         <div class="stats">
             <span class="stat-item">Verified <b>${graph.summary.verified}</b></span>
             <span class="stat-item">Zombies <b>${graph.summary.zombies}</b></span>
@@ -189,9 +200,17 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
         </div>
         <aside id="details-panel">
             ${aiHtml}
-            <h2>System Details</h2>
-            <p class="text-muted-foreground text-sm">Nodes and runtime metrics. Use pan/zoom on the diagram.</p>
+            <h2>Nodes &amp; metrics</h2>
+            <p class="text-muted-foreground text-sm">Pan and zoom the diagram. Filter the list by status to focus on zombies or verified code.</p>
+            <div class="filter-row" role="group" aria-label="Filter by status">
+                <button type="button" class="filter-btn active" data-filter="all">All</button>
+                <button type="button" class="filter-btn" data-filter="verified">Verified</button>
+                <button type="button" class="filter-btn" data-filter="potentially_dead">Zombies</button>
+                <button type="button" class="filter-btn" data-filter="discovered">Discovered</button>
+                <button type="button" class="filter-btn" data-filter="error">Error</button>
+            </div>
             <div id="node-list">${nodeListHtml}</div>
+            <p id="filter-empty" class="empty-filter node-card--hidden" aria-live="polite">No nodes with this status.</p>
         </aside>
     </main>
 
@@ -219,8 +238,43 @@ export function generateHtml(graph: ReconciledGraph, aiResult?: AiAnalysisResult
                 }
             } catch (e) {
                 console.error('Mermaid render error', e);
-                target.innerHTML = '<div class="graph-loading" style="color: var(--destructive)">Render failed: ' + (e.message || e) + '</div>';
+                var errMsg = (e && e.message) ? String(e.message) : String(e);
+                var errDiv = document.createElement('div');
+                errDiv.className = 'graph-loading';
+                errDiv.style.color = 'var(--destructive)';
+                errDiv.textContent = 'Render failed: ' + errMsg;
+                target.innerHTML = '';
+                target.appendChild(errDiv);
             }
+        })();
+
+        (function setupFilters() {
+            var filterBtns = document.querySelectorAll('.filter-btn');
+            var nodeList = document.getElementById('node-list');
+            var emptyEl = document.getElementById('filter-empty');
+            if (!nodeList || !emptyEl) return;
+
+            function applyFilter(filter) {
+                var cards = nodeList.querySelectorAll('.node-card');
+                var visible = 0;
+                cards.forEach(function(card) {
+                    var status = card.getAttribute('data-status') || '';
+                    var show = filter === 'all' || status === filter;
+                    card.classList.toggle('node-card--hidden', !show);
+                    if (show) visible++;
+                });
+                emptyEl.classList.toggle('node-card--hidden', visible > 0);
+                filterBtns.forEach(function(btn) {
+                    btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
+                });
+            }
+
+            filterBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var filter = btn.getAttribute('data-filter') || 'all';
+                    applyFilter(filter);
+                });
+            });
         })();
     </script>
 </body>
