@@ -1,0 +1,29 @@
+# Use when default ports (8080-8085, 4318, 9090) are in use:
+#   docker-compose -f docker-compose.yml -f docker-compose.alt-ports.yml up -d
+# Then run traffic against gateway at http://localhost:9080
+version: '3.8'
+services:
+  otel-collector:
+    ports:
+      - "4319:4318"
+  gateway-service:
+    ports:
+      - "9080:8080"
+  auth-service:
+    ports:
+      - "9081:8080"
+  product-service:
+    ports:
+      - "9082:8080"
+  order-service:
+    ports:
+      - "9083:8080"
+  payment-service:
+    ports:
+      - "9084:8080"
+  shipping-service:
+    ports:
+      - "9085:8080"
+  legacy-warehouse:
+    ports:
+      - "9091:80"

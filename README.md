@@ -75,6 +75,8 @@ pnpm run build
 ```powershell
 ./run_demo.ps1
 ```
+If ports 8080–8085 or 9090 are already in use, use alternate ports: `$env:CODEPULSE_ALT_PORTS = "1"; ./run_demo.ps1` (gateway will be on 9080, etc.). See `docker-compose.alt-ports.yml`.
+
 This automated script will:
 1. Build 6 microservices (Gateway, Auth, Order, Payment, Shipping, Product).
 2. Start the infrastructure via Docker Compose (Collector + Services).

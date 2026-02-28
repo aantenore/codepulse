@@ -1,6 +1,14 @@
 # run_demo.ps1
+# Use alternate ports (9080-9085, 4319, 9091) if another test is using defaults: $env:CODEPULSE_ALT_PORTS = "1"
 $env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
-Write-Host "[Demo] Starting Micro-Commerce Mesh (CodePulse V1.2)..."
+$altPorts = [string]::Equals($env:CODEPULSE_ALT_PORTS, "1", [StringComparison]::OrdinalIgnoreCase)
+if ($altPorts) {
+    $gatewayPort = 9080; $authPort = 9081; $productPort = 9082; $orderPort = 9083; $paymentPort = 9084; $shippingPort = 9085
+    Write-Host "[Demo] Using ALTERNATE ports (9080-9085) to avoid conflicts."
+} else {
+    $gatewayPort = 8080; $authPort = 8081; $productPort = 8082; $orderPort = 8083; $paymentPort = 8084; $shippingPort = 8085
+}
+Write-Host "[Demo] Starting Micro-Commerce Mesh (CodePulse)..."
 Write-Host "Using JAVA_HOME: $env:JAVA_HOME"
 
 # 1. Build Phase
@@ -29,7 +37,11 @@ foreach ($svc in $services) {
 # 2. Docker Phase
 Write-Host "`n[2/4] Orchestrating Infrastructure (Docker)..."
 docker-compose down --remove-orphans
-docker-compose up -d --build
+if ($altPorts) {
+    docker-compose -f docker-compose.yml -f docker-compose.alt-ports.yml up -d --build
+} else {
+    docker-compose up -d --build
+}
 if ($LASTEXITCODE -ne 0) { Write-Error "Docker Start Failed"; exit 1 }
 
 Write-Host "`n[2.1/4] Waiting 90s for services to start (Java is slow)..."
@@ -37,12 +49,12 @@ Start-Sleep -Seconds 90
 
 Write-Host "Verifying mesh health (All services)..."
 $endpoints = @(
-    "http://localhost:8080/health", # gateway
-    "http://localhost:8081/health", # auth
-    "http://localhost:8082/health", # product
-    "http://localhost:8083/health", # order
-    "http://localhost:8084/health", # payment
-    "http://localhost:8085/health"  # shipping
+    "http://localhost:$gatewayPort/health",
+    "http://localhost:$authPort/health",
+    "http://localhost:$productPort/health",
+    "http://localhost:$orderPort/health",
+    "http://localhost:$paymentPort/health",
+    "http://localhost:$shippingPort/health"
 )
 
 $maxRetries = 15
@@ -79,7 +91,7 @@ Write-Host "`n[3/4] Simulating Traffic Flow (Burst)..."
 for ($i = 1; $i -le 10; $i++) { # Increased to 10 batches for more data
     Write-Host "  -> Request Batch $i/10..."
     try {
-        $response = Invoke-RestMethod -Uri "http://localhost:8080/api/order" -Method Post -Body '{"item":"Laptop"}' -ContentType "application/json"
+        $response = Invoke-RestMethod -Uri "http://localhost:$gatewayPort/api/order" -Method Post -Body '{"item":"Laptop"}' -ContentType "application/json"
         Write-Host "     Response: $response"
     } catch {
         Write-Host "     Warning: Batch $i failed (Chaos active or timeout)" -ForegroundColor Yellow

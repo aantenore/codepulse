@@ -4,7 +4,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { JavaInstrumenter } from '@codepulse/plugin-java';
 import { generate } from './commands/generate';
-import { generateInteractive } from './commands/generate-interactive';
 import { run } from './commands/run';
 
 const program = new Command();
@@ -70,6 +69,7 @@ program
     .action(async (options: { source?: string; traces?: string; output?: string; ai?: string; interactive?: boolean }) => {
         try {
             if (options.interactive) {
+                const { generateInteractive } = await import('./commands/generate-interactive');
                 await generateInteractive();
             } else {
                 if (!options.source || !options.traces) {
