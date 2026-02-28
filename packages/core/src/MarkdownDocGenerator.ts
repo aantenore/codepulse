@@ -36,10 +36,8 @@ export class MarkdownDocGenerator {
             node.telemetry.discoveredDependencies.forEach((dep, index) => {
                 const cleanDep = dep.replace(/[: ]/g, '_');
                 output += ` -->|${dep.split(':')[0]}| dep${index}_${cleanDep}[${dep.substring(4)}];\n`;
-                output += `  ${node.id} --> dep${index}_${cleanDep};\n`; // Redundant line fixed in logic?? No, just one link.
+                output += `  ${node.id} --> dep${index}_${cleanDep};\n`;
             });
-            // Fix diagram logic above:
-            // A --> B
 
             output += "```\n\n";
             output += "---\n\n";

@@ -89,7 +89,7 @@ export async function generate(options: GenerateOptions): Promise<void> {
     const staticGraph = await projectParser.parse(source);
     console.log(`[CodePulse] Static Graph: ${staticGraph.nodes.length} nodes found.`);
 
-    const traceContent = fs.readFileSync(options.traces, 'utf-8');
+    const traceContent = fs.readFileSync(traces, 'utf-8');
     const spans = parseTraceFile(traceContent);
     console.log(`[CodePulse] Loaded ${spans.length} trace spans.`);
 

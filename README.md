@@ -91,7 +91,7 @@ pnpm run codepulse -- generate --source ./playground --traces temp/traces/trace-
 ```
 
 ### 4. View Results
-Open `report.html` in your browser. You'll see a interactive Mermaid graph where you can:
+Open `report.html` in your browser. You'll see an interactive Mermaid graph where you can:
 *   Click nodes to see **executions** and **average duration**.
 *   See **discovered dependencies** (DB calls, external APIs).
 *   Identify the exact point of failure in failing flows.

@@ -31,9 +31,10 @@ Thumbs.db
 .env.test.local
 .env.production.local
 
-# IDE
+# IDE & editor
 .vscode
 .idea
+.cursor
 *.swp
 *.swo
 
@@ -46,4 +47,7 @@ playground/**/target/
 report.html
 FLOW_ARCHITECTURE.md
 temp/
+
+# TypeScript
+*.tsbuildinfo
 
