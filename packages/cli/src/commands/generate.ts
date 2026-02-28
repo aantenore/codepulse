@@ -34,18 +34,18 @@ export function parseTraceFile(content: string): TraceSpan[] {
                         const span = s as Record<string, unknown>;
                         span.attributes = [...((span.attributes as unknown[]) ?? []), ...resourceAttr];
                         normalizeSpanTimes(span);
-                        spans.push(span as TraceSpan);
+                        spans.push(span as unknown as TraceSpan);
                     }
                 }
             }
         } else if (Array.isArray(raw)) {
             for (const item of raw as Record<string, unknown>[]) {
                 normalizeSpanTimes(item);
-                spans.push(item as TraceSpan);
+                spans.push(item as unknown as TraceSpan);
             }
         } else {
             normalizeSpanTimes(obj);
-            spans.push(obj as TraceSpan);
+            spans.push(obj as unknown as TraceSpan);
         }
     }
     return spans;
